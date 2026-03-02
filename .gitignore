@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Agent Storage
+# We ignore the contents of Agent/ to avoid storing personal context
+Agent/ChatHistory/*
+Agent/Memory/*
+!Agent/ChatHistory/.gitkeep
+!Agent/Memory/.gitkeep
+Agent/agent.md
+Agent/memory.md
+
+# macOS
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
