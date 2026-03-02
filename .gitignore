@@ -8,12 +8,7 @@ node_modules/
 
 # Agent Storage
 # We ignore the contents of Agent/ to avoid storing personal context
-Agent/ChatHistory/*
-Agent/Memory/*
-!Agent/ChatHistory/.gitkeep
-!Agent/Memory/.gitkeep
-Agent/agent.md
-Agent/memory.md
+Agent/
 
 # macOS
 .DS_Store
