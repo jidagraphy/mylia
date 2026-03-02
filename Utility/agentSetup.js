@@ -10,7 +10,7 @@ function setupAgentEnvironment() {
         fs.mkdirSync(agentDir, { recursive: true });
     }
 
-    const directoriesToEnsure = ['ChatHistory', 'Memory'];
+    const directoriesToEnsure = ['Sessions', 'Memory'];
     for (const dir of directoriesToEnsure) {
         const targetPath = path.join(agentDir, dir);
         if (!fs.existsSync(targetPath)) {

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { getSessionFilename } = require('./sessionManager');
 
-const chatHistoryDir = path.resolve(__dirname, '../Agent/ChatHistory');
+const chatHistoryDir = path.resolve(__dirname, '../Agent/Sessions');
 
 /**
  * Returns the file path for the current session's chat history.
@@ -10,7 +10,7 @@ const chatHistoryDir = path.resolve(__dirname, '../Agent/ChatHistory');
 const getHistoryPath = () => path.join(chatHistoryDir, getSessionFilename());
 
 /**
- * Ensures the ChatHistory directory exists.
+ * Ensures the Sessions directory exists.
  */
 const ensureDir = () => {
     if (!fs.existsSync(chatHistoryDir)) {
@@ -81,12 +81,20 @@ const getSessionHistoryByTokens = (maxTokens = 4000) => {
         const toolStr = msg.tool_calls ? JSON.stringify(msg.tool_calls) : '';
         const msgTokens = estimateTokens(contentStr) + estimateTokens(toolStr) + 10; // +10 for structural overhead
 
-        if (currentTokens + msgTokens > maxTokens && windowedHistory.length > 0) {
-            break; // Stop adding older messages if we exceed the limit
-        }
-
         currentTokens += msgTokens;
         windowedHistory.unshift(msg); // Add to the front since we are going backwards
+
+        if (currentTokens > maxTokens && windowedHistory.length > 0) {
+            const firstMsg = windowedHistory[0];
+            // Safe boundaries to start a conversation snippet:
+            // 1. A user message
+            // 2. An assistant message that did NOT call tools
+            const isSafeBoundary = firstMsg.role === 'user' || (firstMsg.role === 'assistant' && !firstMsg.tool_calls);
+
+            if (isSafeBoundary) {
+                break; // Stop adding older messages at a coherent boundary
+            }
+        }
     }
 
     return windowedHistory;

@@ -1,14 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const chatHistoryDir = path.resolve(__dirname, '../Agent/ChatHistory');
+const chatHistoryDir = path.resolve(__dirname, '../Agent/Sessions');
 const INACTIVE_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
 let sessionId = null;
 let lastActivityTime = null;
 
 /**
- * Ensures the ChatHistory directory exists.
+ * Ensures the Sessions directory exists.
  */
 const ensureDir = () => {
     if (!fs.existsSync(chatHistoryDir)) {
