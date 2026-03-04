@@ -94,13 +94,13 @@ client.on(Events.MessageCreate, async (message) => {
 
             console.log('[Follow-up] Sending follow-up chat with tools...');
             response = await chat(context, systemInstruction, toolDeclarations, followUp);
-            console.log('[Follow-up] Response:', JSON.stringify({ content: response.content, tool_calls: response.tool_calls?.length || 0 }));
+            // console.log('[Follow-up] Response:', JSON.stringify({ content: response.content, tool_calls: response.tool_calls?.length || 0 }));
 
             // If the AI still returns empty or tries more tool calls, retry without tools to force text
             if (!response.content || response.tool_calls?.length > 0) {
                 console.log('[Follow-up] Empty or more tool calls — retrying without tools...');
                 response = await chat(context, systemInstruction, [], followUp);
-                console.log('[Follow-up] Retry response:', JSON.stringify({ content: response.content }));
+                // console.log('[Follow-up] Retry response:', JSON.stringify({ content: response.content }));
             }
 
             // Last resort: if still empty, use the tool results directly

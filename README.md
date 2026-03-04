@@ -12,16 +12,22 @@ Heavily inspired by the philosophy of **OpenClaw**, `mylia` focuses on core agen
 </div>
 
 ---
+## 🛠️ Announcements
+
+This is a work in progress project! Currently only Gemini API and ollama are supported.
+I welcome any feedback and suggestions!
+
+---
 
 ## 🎯 Core Objectives
 
 The framework is built around efficiently achieving exactly five essential capabilities:
 
-1. **💬 Messaging-to-LLM**: Seamless, uninterrupted communication with large language models.
-2. **🎭 Agent Customisation**: Simple and direct configuration of the agent's identity and instructions.
-3. **⏱️ External Triggers & Heartbeat**: The ability to be invoked proactively or run on established intervals.
-4. **🧠 Persistent Memory**: Long-term user fact retention and comprehensive session-based conversation histories.
-5. **🧰 Tool Calling**: Extensible and reliable tool execution for interacting natively with the host system.
+1. **Messaging-to-LLM**
+2. **Agent Customisation**
+3. **External Triggers & Heartbeat**
+4. **Persistent Memory**
+5. **Tool Calling**
 
 ---
 
