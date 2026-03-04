@@ -1,8 +1,15 @@
-# 🧚‍♀️ mylia (My Little AI)
+<div align="center">
 
-> A minimalist, lightweight AI agent framework for personal use.
+# 🧚‍♀️ mylia
 
-**mylia** is designed to provide only the bare minimum required for a functional, persistent AI agent, keeping dependencies as low as possible. Heavily inspired by the philosophy of **OpenClaw**, `mylia` focuses on core agent functionalities without the unnecessary bloat.
+### ✦ My Little AI ✦
+
+> *A minimalist, lightweight AI agent framework.*
+
+**mylia** is designed to provide only the bare minimum required for a functional, persistent AI agent, keeping dependencies as low as possible.<br>
+Heavily inspired by the philosophy of **OpenClaw**, `mylia` focuses on core agent functionalities without the unnecessary bloat.
+
+</div>
 
 ---
 
@@ -25,7 +32,7 @@ The framework is built around efficiently achieving exactly five essential capab
 
 ### Installation
 
-1. Copy the `.env.example` (if provided) or create your own `.env` file at the root.
+1. Copy the `.env.example` or create your own `.env` file at the root.
 2. Populate the `.env` file with your appropriate environment variables (e.g., Discord Bot Token, API keys).
 3. Install the minimal required dependencies:
    ```bash
