@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const { setupAgentEnvironment } = require('./Utility/agentSetup');
-setupAgentEnvironment(); // Ensure Agent files and folders exist at startup
+setupAgentEnvironment(); // Ensure workspace folders and template files exist
 
 const { Client, GatewayIntentBits, Partials, Events } = require('discord.js');
 const { chat } = require('./Clients/provider');

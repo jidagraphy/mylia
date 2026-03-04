@@ -1,18 +1,24 @@
 const fs = require('fs');
 const path = require('path');
 
-function setupAgentEnvironment() {
-    const rootDir = path.join(__dirname, '..');
-    const agentDir = path.join(rootDir, 'Agent');
-    const templateDir = path.join(rootDir, 'AgentTemplate');
+const ROOT_DIR = path.join(__dirname, '..');
 
-    if (!fs.existsSync(agentDir)) {
-        fs.mkdirSync(agentDir, { recursive: true });
+/**
+ * Sets up the workspace directory with required folders and template files.
+ * Called by app.js on startup — no interactive prompts, just file ops.
+ */
+function setupAgentEnvironment() {
+    const { getWorkspacePath } = require('./workspace');
+    const workspacePath = getWorkspacePath();
+    const templateDir = path.join(ROOT_DIR, 'AgentTemplate');
+
+    if (!fs.existsSync(workspacePath)) {
+        fs.mkdirSync(workspacePath, { recursive: true });
     }
 
     const directoriesToEnsure = ['Sessions', 'Memory'];
     for (const dir of directoriesToEnsure) {
-        const targetPath = path.join(agentDir, dir);
+        const targetPath = path.join(workspacePath, dir);
         if (!fs.existsSync(targetPath)) {
             fs.mkdirSync(targetPath, { recursive: true });
         }
@@ -21,13 +27,13 @@ function setupAgentEnvironment() {
     const filesToCopy = ['agent.md', 'memory.md', 'soul.md', 'user.md'];
     for (const file of filesToCopy) {
         const sourcePath = path.join(templateDir, file);
-        const targetPath = path.join(agentDir, file);
+        const targetPath = path.join(workspacePath, file);
 
         if (!fs.existsSync(targetPath)) {
             if (fs.existsSync(sourcePath)) {
                 fs.copyFileSync(sourcePath, targetPath);
             } else {
-                console.warn(`[agentSetup] Template file ${sourcePath} not found.`);
+                console.warn(`[Setup] Template file ${file} not found.`);
             }
         }
     }

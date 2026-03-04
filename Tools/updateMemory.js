@@ -1,14 +1,15 @@
 const fs = require('fs');
 const path = require('path');
+const { getWorkspacePath } = require('../Utility/workspace');
 
-const memoryFile = path.resolve(__dirname, '../Agent/memory.md');
+const memoryFile = () => path.join(getWorkspacePath(), 'memory.md');
 
 /**
  * Initializes the memory file if it doesn't exist.
  */
 const initMemory = () => {
-    if (!fs.existsSync(memoryFile)) {
-        fs.writeFileSync(memoryFile, '# Agent Memory\n\nThis file contains learned facts about the user.\n\n');
+    if (!fs.existsSync(memoryFile())) {
+        fs.writeFileSync(memoryFile(), '# Agent Memory\n\nThis file contains learned facts about the user.\n\n');
     }
 };
 
@@ -21,8 +22,8 @@ const initMemory = () => {
 const handler = async ({ content }) => {
     initMemory();
     try {
-        fs.copyFileSync(memoryFile, `${memoryFile}.bak`);
-        fs.writeFileSync(memoryFile, content, 'utf8');
+        fs.copyFileSync(memoryFile(), `${memoryFile()}.bak`);
+        fs.writeFileSync(memoryFile(), content, 'utf8');
         return 'Memory updated successfully.';
     } catch (error) {
         console.error('Failed to write memory:', error);

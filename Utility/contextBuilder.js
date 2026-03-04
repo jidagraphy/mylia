@@ -1,18 +1,19 @@
 const fs = require('fs');
 const path = require('path');
+const { getWorkspacePath } = require('./workspace');
 
-const agentMdPath = path.resolve(__dirname, '../Agent/agent.md');
-const soulFile = path.resolve(__dirname, '../Agent/soul.md');
-const userFile = path.resolve(__dirname, '../Agent/user.md');
-const memoryFile = path.resolve(__dirname, '../Agent/memory.md');
-const memoryDir = path.resolve(__dirname, '../Agent/Memory');
+const agentMdPath = () => path.join(getWorkspacePath(), 'agent.md');
+const soulFile = () => path.join(getWorkspacePath(), 'soul.md');
+const userFile = () => path.join(getWorkspacePath(), 'user.md');
+const memoryFile = () => path.join(getWorkspacePath(), 'memory.md');
+const memoryDir = () => path.join(getWorkspacePath(), 'Memory');
 
-const loadAgentIdentity = () => `=== AGENT ===\n${fs.readFileSync(agentMdPath, 'utf-8').trim()}`;
+const loadAgentIdentity = () => `=== AGENT ===\n${fs.readFileSync(agentMdPath(), 'utf-8').trim()}`;
 
 const loadSoul = () => {
-    if (!fs.existsSync(soulFile)) return '';
+    if (!fs.existsSync(soulFile())) return '';
     try {
-        const soul = fs.readFileSync(soulFile, 'utf8').trim();
+        const soul = fs.readFileSync(soulFile(), 'utf8').trim();
         if (!soul) return '';
         return `=== SOUL ===\n${soul}`;
     } catch {
@@ -21,9 +22,9 @@ const loadSoul = () => {
 };
 
 const loadUser = () => {
-    if (!fs.existsSync(userFile)) return '';
+    if (!fs.existsSync(userFile())) return '';
     try {
-        const user = fs.readFileSync(userFile, 'utf8').trim();
+        const user = fs.readFileSync(userFile(), 'utf8').trim();
         if (!user) return '';
         return `=== USER PROFILE ===\n${user}`;
     } catch {
@@ -32,9 +33,9 @@ const loadUser = () => {
 };
 
 const loadLongTermMemory = () => {
-    if (!fs.existsSync(memoryFile)) return '';
+    if (!fs.existsSync(memoryFile())) return '';
     try {
-        const mem = fs.readFileSync(memoryFile, 'utf8').trim();
+        const mem = fs.readFileSync(memoryFile(), 'utf8').trim();
         if (!mem) return '';
         return `=== LONG-TERM MEMORY ===\n${mem}`;
     } catch {
@@ -43,9 +44,9 @@ const loadLongTermMemory = () => {
 };
 
 const loadRecentSessionDiaries = (count = 2) => {
-    if (!fs.existsSync(memoryDir)) return '';
+    if (!fs.existsSync(memoryDir())) return '';
 
-    const files = fs.readdirSync(memoryDir)
+    const files = fs.readdirSync(memoryDir())
         .filter(f => f.endsWith('.md'))
         .sort((a, b) => b.localeCompare(a)) // Sort descending (newest first)
         .slice(0, count)
@@ -56,7 +57,7 @@ const loadRecentSessionDiaries = (count = 2) => {
     let diaries = '';
     for (const file of files) {
         const sessionId = file.replace('.md', '');
-        const filePath = path.join(memoryDir, `${sessionId}.md`);
+        const filePath = path.join(memoryDir(), `${sessionId}.md`);
         try { var log = fs.readFileSync(filePath, 'utf8').trim(); }
         catch { continue; }
         if (log) {

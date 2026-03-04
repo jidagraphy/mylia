@@ -4,13 +4,15 @@ const { complete } = require('../Clients/provider');
 const { getFullHistory } = require('../Utility/historyStore');
 const { getSessionId, startSession } = require('../Utility/sessionManager');
 
-const memoryDir = path.resolve(__dirname, '../Agent/Memory');
+const { getWorkspacePath } = require('../Utility/workspace');
+
+const memoryDir = () => path.join(getWorkspacePath(), 'Memory');
 
 /**
  * Ensures the Memory directory exists.
  */
 const ensureMemoryDir = () => {
-    if (!fs.existsSync(memoryDir)) fs.mkdirSync(memoryDir, { recursive: true });
+    if (!fs.existsSync(memoryDir())) fs.mkdirSync(memoryDir(), { recursive: true });
 };
 
 /**
@@ -19,7 +21,7 @@ const ensureMemoryDir = () => {
  * @returns {string}
  */
 const readSessionDiary = (sessionId) => {
-    const filePath = path.join(memoryDir, `${sessionId}.md`);
+    const filePath = path.join(memoryDir(), `${sessionId}.md`);
     if (!fs.existsSync(filePath)) return '';
     try { return fs.readFileSync(filePath, 'utf8').trim(); }
     catch { return ''; }
@@ -51,7 +53,7 @@ const generateSessionDiary = async (sessionId) => {
         if (!summary) return 'Failed to generate session diary.';
 
         ensureMemoryDir();
-        fs.writeFileSync(path.join(memoryDir, `${sessionId}.md`), summary);
+        fs.writeFileSync(path.join(memoryDir(), `${sessionId}.md`), summary);
         console.log(`[Session Diary] Saved session diary to Memory/${sessionId}.md`);
         return `Session diary saved to Memory/${sessionId}.md`;
     } catch (error) {

@@ -1,7 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const chatHistoryDir = path.resolve(__dirname, '../Agent/Sessions');
+const { getWorkspacePath } = require('./workspace');
+
+const chatHistoryDir = () => path.join(getWorkspacePath(), 'Sessions');
 const INACTIVE_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
 let sessionId = null;
@@ -11,8 +13,8 @@ let lastActivityTime = null;
  * Ensures the Sessions directory exists.
  */
 const ensureDir = () => {
-    if (!fs.existsSync(chatHistoryDir)) {
-        fs.mkdirSync(chatHistoryDir, { recursive: true });
+    if (!fs.existsSync(chatHistoryDir())) {
+        fs.mkdirSync(chatHistoryDir(), { recursive: true });
     }
 };
 
@@ -22,15 +24,15 @@ const ensureDir = () => {
  */
 const findLatestSession = () => {
     ensureDir();
-    const files = fs.readdirSync(chatHistoryDir).filter(f => f.endsWith('.jsonl'));
+    const files = fs.readdirSync(chatHistoryDir()).filter(f => f.endsWith('.jsonl'));
     if (files.length === 0) return null;
 
     files.sort((a, b) => {
-        return fs.statSync(path.join(chatHistoryDir, b)).mtimeMs - fs.statSync(path.join(chatHistoryDir, a)).mtimeMs;
+        return fs.statSync(path.join(chatHistoryDir(), b)).mtimeMs - fs.statSync(path.join(chatHistoryDir(), a)).mtimeMs;
     });
 
     const latestFile = files[0];
-    const mtimeMs = fs.statSync(path.join(chatHistoryDir, latestFile)).mtimeMs;
+    const mtimeMs = fs.statSync(path.join(chatHistoryDir(), latestFile)).mtimeMs;
     return {
         id: latestFile.replace('.jsonl', ''),
         mtimeMs
@@ -66,7 +68,7 @@ const getTodayDate = () => new Date().toISOString().split('T')[0];
  */
 const getNextSessionNumber = (date) => {
     ensureDir();
-    const files = fs.readdirSync(chatHistoryDir)
+    const files = fs.readdirSync(chatHistoryDir())
         .filter(f => f.startsWith(date) && f.endsWith('.jsonl'));
     return files.length + 1;
 };
@@ -131,7 +133,7 @@ const checkAndRenewSession = async (onEndSession) => {
         const previousSessionId = sessionId;
         if (previousSessionId && onEndSession) {
             // Check if diary already exists to avoid redundant generation from restarts
-            const memoryDir = path.resolve(__dirname, '../Agent/Memory');
+            const memoryDir = path.join(getWorkspacePath(), 'Memory');
             const diaryPath = path.join(memoryDir, `${previousSessionId}.md`);
             if (!fs.existsSync(diaryPath)) {
                 await onEndSession(previousSessionId);

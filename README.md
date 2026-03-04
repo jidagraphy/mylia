@@ -39,34 +39,46 @@ The framework is built around efficiently achieving exactly five essential capab
 
 ### Installation
 
-1. Copy the `.env.example` or create your own `.env` file at the root.
-2. Populate the `.env` file with your appropriate environment variables (e.g., Discord Bot Token, API keys).
-3. Install the minimal required dependencies:
+1. Install dependencies:
    ```bash
    npm install
    ```
+2. On first run, `.env` is auto-created from `.env.template`.
+3. You'll be prompted for a workspace path (default: `~/.mylia`) where all agent data is stored.
 
 ### Running the Agent
 
-You can start the agent directly with Node.js, or manage it in the background using a process manager like `pm2`:
+Use the built-in CLI to manage mylia:
 
 ```bash
-# Standard run
-node index.js
+# Install globally (run once)
+npm link
 
-# Running with pm2 for background execution
-pm2 start index.js --name mylia
+# Daemon management
+mylia start              # Start as background daemon
+mylia stop               # Stop the daemon
+mylia status             # Show running status, provider, and model
+mylia logs               # Tail live console output
+
+# Configuration
+mylia config                # Interactive settings editor
+```
+
+Or run directly without the CLI:
+
+```bash
+node app.js
 ```
 
 ---
 
 ## 📂 Directory Structure
 
-- **`AgentTemplate/`**: Default templates for `agent.md` and `memory.md` identities.
-- **`Agent/`**: Active directory where the agent's identity, long-term memory, and session histories are stored.
+- **`AgentTemplate/`**: Default templates copied into new workspaces.
+- **`Workspace (default: ~/.mylia/)`**: Agent identity, long-term memory, and session histories.
 - **`Tools/`**: Modular tool files that the LLM can invoke.
-- **`Utility/`**: Helper scripts for session management, memory compaction, and initialization.
-- **`Clients/`**: Provider wrappers (e.g., Gemini API, Discord Client).
+- **`Utility/`**: Helper scripts for session management, memory, and workspace setup.
+- **`Clients/`**: Provider wrappers (e.g., Gemini API, Ollama, OpenRouter, Discord).
 
 ---
 

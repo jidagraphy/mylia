@@ -1,14 +1,15 @@
 const fs = require('fs');
 const path = require('path');
+const { getWorkspacePath } = require('../Utility/workspace');
 
-const userFile = path.resolve(__dirname, '../Agent/user.md');
+const userFile = () => path.join(getWorkspacePath(), 'user.md');
 
 /**
  * Initializes the user file from template if it doesn't exist.
  */
 const initUser = () => {
-    if (!fs.existsSync(userFile)) {
-        fs.writeFileSync(userFile, '# User\n');
+    if (!fs.existsSync(userFile())) {
+        fs.writeFileSync(userFile(), '# User\n');
     }
 };
 
@@ -21,8 +22,8 @@ const initUser = () => {
 const handler = async ({ content }) => {
     initUser();
     try {
-        fs.copyFileSync(userFile, `${userFile}.bak`);
-        fs.writeFileSync(userFile, content, 'utf8');
+        fs.copyFileSync(userFile(), `${userFile()}.bak`);
+        fs.writeFileSync(userFile(), content, 'utf8');
         return 'User profile updated successfully.';
     } catch (error) {
         console.error('Failed to write user:', error);
