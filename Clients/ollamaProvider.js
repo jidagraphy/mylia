@@ -59,18 +59,23 @@ const chat = async (model, history, systemInstruction, tools, currentMessage) =>
         messages.push({ role: 'user', content: currentMessage.textPrompt });
     }
 
-    const options = { model, messages, stream: false };
+    const options = { model, messages, stream: true };
     const ollamaTools = toOllamaTools(tools);
     if (ollamaTools) options.tools = ollamaTools;
 
-    const response = await ollama.chat(options);
+    const result = { role: 'assistant', content: '', tool_calls: [] };
 
-    const result = { role: 'assistant', content: response.message?.content || '', tool_calls: [] };
+    const stream = await ollama.chat(options);
+    for await (const chunk of stream) {
+        if (chunk.message?.content) {
+            result.content += chunk.message.content;
+        }
 
-    if (response.message?.tool_calls?.length > 0) {
-        result.tool_calls = response.message.tool_calls.map(tc => ({
-            function: { name: tc.function.name, arguments: tc.function.arguments }
-        }));
+        if (chunk.message?.tool_calls?.length > 0) {
+            result.tool_calls = chunk.message.tool_calls.map(tc => ({
+                function: { name: tc.function.name, arguments: tc.function.arguments }
+            }));
+        }
     }
 
     return result;

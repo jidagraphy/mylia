@@ -60,6 +60,7 @@ client.on(Events.MessageCreate, async (message) => {
         console.log(`Sending to AI: "${userPrompt}"`);
 
         let response = await chat(history, systemInstruction, toolDeclarations, currentMessage);
+        console.log(`[AI] ${response.content || '(tool calls)'}`);
         appendToHistory(currentMessage);
 
         // Handle tool calls
@@ -110,6 +111,7 @@ client.on(Events.MessageCreate, async (message) => {
         }
 
         const answer = response.content;
+        console.log(`[Reply] ${answer}`);
         appendToHistory({ role: 'assistant', content: answer });
 
         clearInterval(typingInterval);
