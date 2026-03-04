@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { complete } = require('../Clients/provider');
 const { getFullHistory } = require('../Utility/historyStore');
-const { checkAndRenewSession } = require('../Utility/sessionManager');
+const { getSessionId, startSession } = require('../Utility/sessionManager');
 
 const memoryDir = path.resolve(__dirname, '../Agent/Memory');
 
@@ -40,7 +40,11 @@ const generateSessionDiary = async (sessionId) => {
         .map(m => `[${m.timestamp || ''}] [${m.role}]: ${m.content}`)
         .join('\n');
 
-    const prompt = `Below is the conversation from session ${sessionId}:\n${historyText}\n\nWrite a brief session diary as bullet points. Include only: key decisions, action items, and important facts. Do not paraphrase the conversation. Be concise.`;
+    const prompt = `Below is the transcript from session ${sessionId}:\n${historyText}\n\nWrite a brief session log summarizing this chat with Jida.
+
+    Constraints:
+    - Keep it short to about 3 paragraphs max.
+    - Capture the general vibe and the main topics we talked about.`;
 
     try {
         const summary = await complete(prompt);
@@ -57,15 +61,20 @@ const generateSessionDiary = async (sessionId) => {
 };
 
 /**
- * Compacts today's chat history into a daily summary.
+ * Compacts the current chat history into a daily summary and starts a new session.
  * @returns {Promise<string>}
  */
 const handler = async () => {
-    let resultMessage = '';
-    await checkAndRenewSession(async (oldSessionId) => {
-        resultMessage = await generateSessionDiary(oldSessionId);
-    });
-    return resultMessage || 'Session renewed and diary generated.';
+    const currentSessionId = getSessionId();
+    if (!currentSessionId) return 'No active session to compact.';
+
+    // Explicitly generate diary for current session
+    const resultMessage = await generateSessionDiary(currentSessionId);
+
+    // Start a fresh session since we just consolidated the old one
+    startSession();
+
+    return resultMessage;
 };
 
 const declaration = {
