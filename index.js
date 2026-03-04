@@ -82,7 +82,18 @@ client.on(Events.MessageCreate, async (message) => {
                 const fn = availableTools[tc.function.name];
                 if (fn) {
                     console.log(`Executing: ${tc.function.name}`);
-                    const result = await fn(tc.function.arguments);
+
+                    let parsedArgs = tc.function.arguments;
+                    if (typeof parsedArgs === 'string') {
+                        if (!parsedArgs.trim()) {
+                            parsedArgs = {};
+                        } else {
+                            try { parsedArgs = JSON.parse(parsedArgs); }
+                            catch (e) { console.error('Failed to parse tool args:', e.message); parsedArgs = {}; }
+                        }
+                    }
+
+                    const result = await fn(parsedArgs);
                     console.log(`Result: ${result}`);
 
                     const toolMsg = { role: 'tool', content: result, name: tc.function.name };
