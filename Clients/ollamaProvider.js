@@ -1,8 +1,4 @@
-const { Ollama } = require('ollama');
-
-// Force localhost — ollama-js reads OLLAMA_HOST internally, override it
-process.env.OLLAMA_HOST = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
-const ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
+const OLLAMA_HOST = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 
 /**
  * Converts Gemini-format tool declarations to Ollama/OpenAI format.
@@ -28,7 +24,7 @@ const toOllamaTools = (geminiTools) => {
 };
 
 /**
- * Chat with tool support via local Ollama.
+ * Chat with tool support via local Ollama REST API.
  */
 const chat = async (model, history, systemInstruction, tools, currentMessage) => {
     const formatMessage = (msg) => {
@@ -53,32 +49,57 @@ const chat = async (model, history, systemInstruction, tools, currentMessage) =>
         formatMessage(currentMessage)
     ];
 
-    // If currentMessage was a tool, we appended a textPrompt in index.js for Gemini.
-    // For Ollama/OpenAI, we should add that as an explicit user message.
     if (currentMessage.role === 'tool' && currentMessage.textPrompt) {
         messages.push({ role: 'user', content: currentMessage.textPrompt });
     }
 
-    const options = { model, messages, stream: true };
+    const payload = { model, messages, stream: true };
     const ollamaTools = toOllamaTools(tools);
-    if (ollamaTools) options.tools = ollamaTools;
-
-    // Uncomment this to see exactly what is sent to the AI
-    // console.log('[OllamaProvider] Sending messages:', JSON.stringify(messages, null, 2));
+    if (ollamaTools) payload.tools = ollamaTools;
 
     const result = { role: 'assistant', content: '', tool_calls: [] };
 
-    const stream = await ollama.chat(options);
-    for await (const chunk of stream) {
-        if (chunk.message?.content) {
-            result.content += chunk.message.content;
+    try {
+        const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
         }
 
-        if (chunk.message?.tool_calls?.length > 0) {
-            result.tool_calls = chunk.message.tool_calls.map(tc => ({
-                function: { name: tc.function.name, arguments: tc.function.arguments }
-            }));
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunkString = decoder.decode(value, { stream: true });
+            const lines = chunkString.split('\n').filter(line => line.trim() !== '');
+
+            for (const line of lines) {
+                try {
+                    const chunk = JSON.parse(line);
+                    if (chunk.message?.content) {
+                        result.content += chunk.message.content;
+                    }
+
+                    if (chunk.message?.tool_calls?.length > 0) {
+                        result.tool_calls = chunk.message.tool_calls.map(tc => ({
+                            function: { name: tc.function.name, arguments: tc.function.arguments }
+                        }));
+                    }
+                } catch (e) {
+                    // Ignore incomplete JSON chunks, they will be handled by stream buffering
+                    console.error('[OllamaProvider] Failed to parse stream chunk:', e.message);
+                }
+            }
         }
+    } catch (error) {
+        console.error('[OllamaProvider] Fetch error:', error);
     }
 
     return result;
@@ -88,12 +109,27 @@ const chat = async (model, history, systemInstruction, tools, currentMessage) =>
  * Simple text completion via local Ollama.
  */
 const complete = async (model, prompt) => {
-    const response = await ollama.chat({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        stream: false
-    });
-    return response.message?.content?.trim() || '';
+    try {
+        const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model,
+                messages: [{ role: 'user', content: prompt }],
+                stream: false
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+        }
+
+        const json = await response.json();
+        return json.message?.content?.trim() || '';
+    } catch (error) {
+        console.error('[OllamaProvider] Complete fetch error:', error);
+        return '';
+    }
 };
 
 module.exports = { chat, complete };
