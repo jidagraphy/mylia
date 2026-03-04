@@ -81,3 +81,9 @@ pm2 start index.js --name mylia
 ## ⚠️ Disclaimer
 
 **Note:** This project is actively in development and primarily made for personal use. It is still in its early stages. Please exercise caution if adapting it for wider or production environments.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
