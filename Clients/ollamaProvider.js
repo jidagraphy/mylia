@@ -7,29 +7,37 @@ const OLLAMA_HOST = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 const chat = async (model, history, systemInstruction, tools, currentMessage) => {
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
-            return { role: 'tool', content: msg.content || '', name: msg.name || 'unknown_tool' };
+            // Convert tool results to user messages for Gemini compatibility
+            // Gemini proxy requires paired tool_calls + results with thought_signature, 
+            // which we can't produce. Flattening to user messages works universally.
+            return { role: 'user', content: `[Tool Result: ${msg.name || 'unknown'}]\n${msg.content || ''}` };
         }
         if (msg.role === 'assistant') {
-            const out = { role: 'assistant', content: msg.content || '' };
-            if (msg.tool_calls && msg.tool_calls.length > 0) {
-                out.tool_calls = msg.tool_calls.map(tc => ({
-                    function: { name: tc.function.name, arguments: tc.function.arguments }
-                }));
-            }
-            return out;
+            return { role: 'assistant', content: msg.content || '' };
         }
         return { role: 'user', content: msg.content || '' };
     };
 
+    // Filter out empty assistant messages (tool-call-only responses that have no text)
+    const formatAndFilter = (msgs) => {
+        const formatted = msgs.map(formatMessage).filter(m => m.content.trim() !== '');
+        // Merge consecutive same-role messages (e.g. user + tool-as-user back-to-back)
+        const merged = [];
+        for (const m of formatted) {
+            if (merged.length > 0 && merged[merged.length - 1].role === m.role) {
+                merged[merged.length - 1].content += '\n\n' + m.content;
+            } else {
+                merged.push({ ...m });
+            }
+        }
+        return merged;
+    };
+
     const messages = [
         { role: 'system', content: systemInstruction },
-        ...history.map(formatMessage),
+        ...formatAndFilter(history),
         formatMessage(currentMessage)
     ];
-
-    if (currentMessage.role === 'tool' && currentMessage.textPrompt) {
-        messages.push({ role: 'user', content: currentMessage.textPrompt });
-    }
 
     const payload = { model, messages, stream: true };
     if (tools?.length > 0) payload.tools = tools;
@@ -44,7 +52,8 @@ const chat = async (model, history, systemInstruction, tools, currentMessage) =>
         });
 
         if (!response.ok) {
-            throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+            const errBody = await response.text();
+            throw new Error(`Ollama API error: ${response.status} ${response.statusText} - ${errBody}`);
         }
 
         const reader = response.body.getReader();

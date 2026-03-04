@@ -96,31 +96,33 @@ client.on(Events.MessageCreate, async (message) => {
                     const result = await fn(parsedArgs);
                     console.log(`Result: ${result}`);
 
-                    const toolMsg = { role: 'tool', content: result, name: tc.function.name };
+                    const toolMsg = { role: 'tool', tool_call_id: tc.id, content: result, name: tc.function.name };
                     appendToHistory(toolMsg);
                     context.push(toolMsg);
                     currentToolResults.push(`[${tc.function.name}]: ${result}`);
                 } else {
                     console.warn(`Tool not found: ${tc.function.name}`);
-                    const toolMsg = { role: 'tool', content: 'Tool not found', name: tc.function.name };
+                    const toolMsg = { role: 'tool', tool_call_id: tc.id, content: 'Tool not found', name: tc.function.name };
                     appendToHistory(toolMsg);
                     context.push(toolMsg);
                     currentToolResults.push(`[${tc.function.name}]: Tool not found`);
                 }
             }
 
-            // After tools execute, ask the AI to form a response
-            let synthesizedPrompt = `Recent tool execution results:\n${currentToolResults.join('\n')}\n\nBased on the tool execution results above, continue the conversation.`;
-
-            // On the final iteration, strongly encourage a text response
+            // On the final iteration, add a nudge to respond with text
             if (iterations === maxIterations) {
-                synthesizedPrompt += '\n\nNote: You have reached the maximum number of tool execution attempts. You MUST generate a final text response to the user explaining what you found or why you failed, instead of calling another tool.';
+                context.push({ role: 'user', content: 'You have reached the maximum number of tool attempts. Please provide a final text response summarizing what you found.' });
             }
 
-            const followUp = { role: 'user', content: synthesizedPrompt };
+            // Pop the last message from context to pass as currentMessage
+            // This way history = [..., assistant(tool_calls), tool_result(s)...]
+            // and currentMessage = last tool result (or the max-iteration nudge)
+            const lastMsg = context.pop();
 
-            console.log('[Follow-up] Sending follow-up chat...');
-            response = await chat(context, systemInstruction, toolDeclarations, followUp);
+            console.log('[Follow-up] Sending follow-up chat with tool results in context...');
+            response = await chat(context, systemInstruction, toolDeclarations, lastMsg);
+            // Push it back so history stays complete
+            context.push(lastMsg);
             console.log('[Follow-up] Response:', JSON.stringify(response));
         }
 

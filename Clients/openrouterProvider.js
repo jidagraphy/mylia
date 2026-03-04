@@ -6,7 +6,7 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const chat = async (model, history, systemInstruction, tools, currentMessage) => {
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
-            return { role: 'tool', content: msg.content || '', name: msg.name || 'unknown_tool' };
+            return { role: 'tool', tool_call_id: msg.tool_call_id || 'unknown', content: msg.content || '', name: msg.name || 'unknown_tool' };
         }
         if (msg.role === 'assistant') {
             const out = { role: 'assistant', content: msg.content || '' };
@@ -14,7 +14,7 @@ const chat = async (model, history, systemInstruction, tools, currentMessage) =>
                 out.tool_calls = msg.tool_calls.map(tc => ({
                     id: tc.id || `call_${Math.random().toString(36).substr(2, 9)}`, // OpenRouter demands an ID
                     type: "function",
-                    function: { name: tc.function.name, arguments: tc.function.arguments }
+                    function: { name: tc.function.name, arguments: typeof tc.function.arguments === 'string' ? tc.function.arguments : JSON.stringify(tc.function.arguments) }
                 }));
             }
             return out;

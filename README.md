@@ -14,7 +14,7 @@ Heavily inspired by the philosophy of **OpenClaw**, `mylia` focuses on core agen
 ---
 ## 🛠️ Announcements
 
-This is a work in progress project! Currently only openrouter, Gemini API and ollama are supported.
+This is a work in progress project! Currently only openrouter, ollama and Gemini API are supported.
 I welcome any feedback and suggestions!
 
 ---
@@ -31,7 +31,8 @@ The framework is built around efficiently achieving exactly five essential capab
 
 ---
 
-## 🚀 Getting Started
+
+## �🚀 Getting Started
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) installed on your host system.
@@ -66,6 +67,14 @@ pm2 start index.js --name mylia
 - **`Tools/`**: Modular tool files that the LLM can invoke.
 - **`Utility/`**: Helper scripts for session management, memory compaction, and initialization.
 - **`Clients/`**: Provider wrappers (e.g., Gemini API, Discord Client).
+
+---
+
+## � Tools
+
+- **`executeShell`** — Runs shell commands on the host machine and returns the output.
+- **`webFetch`** — Fetches a web page and returns clean text with all HTML, JS, and CSS stripped.
+- **`updateMemory` / `updateSoul` / `updateUser`** — Rewrites the agent's long-term memory, personality, or user profile files.
 
 ---
 
