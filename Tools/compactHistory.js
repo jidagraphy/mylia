@@ -69,12 +69,15 @@ const handler = async () => {
 };
 
 const declaration = {
-    name: "compactHistory",
-    description: "Compacts today's conversation into a daily summary (Memory/YYYY-MM-DD.md). Use when asked for compaction or when conversation is long.",
-    parameters: {
-        type: "OBJECT",
-        properties: {},
-        required: []
+    type: "function",
+    function: {
+        name: "compactHistory",
+        description: "Compacts today's conversation into a daily summary (Memory/YYYY-MM-DD.md). Use when asked for compaction or when conversation is long.",
+        parameters: {
+            type: "object",
+            properties: {},
+            required: []
+        }
     }
 };
 

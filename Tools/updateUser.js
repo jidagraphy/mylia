@@ -31,14 +31,17 @@ const handler = async ({ content }) => {
 };
 
 const declaration = {
-    name: "updateUser",
-    description: "Rewrites the entire user profile file (user.md) with the provided content. user.md contains facts about the user you are assisting. Read the current user profile from your system context first, then call this with the full updated content. Preserve existing facts unless they are outdated or incorrect.",
-    parameters: {
-        type: "OBJECT",
-        properties: {
-            content: { type: "STRING", description: "The complete new content for user.md, replacing everything currently in the file." }
-        },
-        required: ["content"]
+    type: "function",
+    function: {
+        name: "updateUser",
+        description: "Rewrites the entire user profile file (user.md) with the provided content. user.md contains facts about the user you are assisting. Read the current user profile from your system context first, then call this with the full updated content. Preserve existing facts unless they are outdated or incorrect.",
+        parameters: {
+            type: "object",
+            properties: {
+                content: { type: "string", description: "The complete new content for user.md, replacing everything currently in the file." }
+            },
+            required: ["content"]
+        }
     }
 };
 

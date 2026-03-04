@@ -18,14 +18,17 @@ const handler = async ({ command }) => {
 };
 
 const declaration = {
-    name: "executeShell",
-    description: "Executes a bash shell command on the host (Mac) machine and returns the output.",
-    parameters: {
-        type: "OBJECT",
-        properties: {
-            command: { type: "STRING", description: "The shell command to execute." }
-        },
-        required: ["command"]
+    type: "function",
+    function: {
+        name: "executeShell",
+        description: "Executes a bash shell command on the host (Mac) machine and returns the output.",
+        parameters: {
+            type: "object",
+            properties: {
+                command: { type: "string", description: "The shell command to execute." }
+            },
+            required: ["command"]
+        }
     }
 };
 

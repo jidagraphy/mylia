@@ -31,14 +31,17 @@ const handler = async ({ content }) => {
 };
 
 const declaration = {
-    name: "updateMemory",
-    description: "Rewrites the entire long-term memory file (memory.md) with the provided content. Use readMemory first via your system context to see current facts, then call this with the full updated file content. Preserve existing facts unless they are outdated or incorrect. Keep entries concise.",
-    parameters: {
-        type: "OBJECT",
-        properties: {
-            content: { type: "STRING", description: "The complete new content for memory.md, replacing everything currently in the file." }
-        },
-        required: ["content"]
+    type: "function",
+    function: {
+        name: "updateMemory",
+        description: "Rewrites the entire long-term memory file (memory.md) with the provided content. Use readMemory first via your system context to see current facts, then call this with the full updated file content. Preserve existing facts unless they are outdated or incorrect. Keep entries concise.",
+        parameters: {
+            type: "object",
+            properties: {
+                content: { type: "string", description: "The complete new content for memory.md, replacing everything currently in the file." }
+            },
+            required: ["content"]
+        }
     }
 };
 

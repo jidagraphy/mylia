@@ -1,27 +1,5 @@
 const OLLAMA_HOST = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 
-/**
- * Converts Gemini-format tool declarations to Ollama/OpenAI format.
- */
-const toOllamaTools = (geminiTools) => {
-    if (!geminiTools?.length) return undefined;
-    return geminiTools.map(t => ({
-        type: 'function',
-        function: {
-            name: t.name,
-            description: t.description,
-            parameters: {
-                type: 'object',
-                properties: Object.fromEntries(
-                    Object.entries(t.parameters.properties || {}).map(([k, v]) => [
-                        k, { type: v.type.toLowerCase(), description: v.description }
-                    ])
-                ),
-                required: t.parameters.required || []
-            }
-        }
-    }));
-};
 
 /**
  * Chat with tool support via local Ollama REST API.
@@ -54,8 +32,7 @@ const chat = async (model, history, systemInstruction, tools, currentMessage) =>
     }
 
     const payload = { model, messages, stream: true };
-    const ollamaTools = toOllamaTools(tools);
-    if (ollamaTools) payload.tools = ollamaTools;
+    if (tools?.length > 0) payload.tools = tools;
 
     const result = { role: 'assistant', content: '', tool_calls: [] };
 

@@ -22,11 +22,35 @@ const toGeminiContent = (msg) => {
 };
 
 /**
+ * Converts OpenAI-format tool declarations to Gemini's format.
+ */
+const toGeminiTools = (openAiTools) => {
+    if (!openAiTools?.length) return undefined;
+    return openAiTools.map(t => {
+        const fn = t.function;
+        return {
+            name: fn.name,
+            description: fn.description,
+            parameters: {
+                type: 'OBJECT', // Gemini requires uppercase
+                properties: Object.fromEntries(
+                    Object.entries(fn.parameters?.properties || {}).map(([k, v]) => [
+                        k, { type: v.type.toUpperCase(), description: v.description }
+                    ])
+                ),
+                required: fn.parameters?.required || []
+            }
+        };
+    });
+};
+
+/**
  * Chat with tool support via Gemini.
  */
 const chat = async (model, history, systemInstruction, tools, currentMessage) => {
     const config = { systemInstruction };
-    if (tools?.length > 0) config.tools = [{ functionDeclarations: tools }];
+    const geminiTools = toGeminiTools(tools);
+    if (geminiTools?.length > 0) config.tools = [{ functionDeclarations: geminiTools }];
 
     const session = ai.chats.create({
         model,

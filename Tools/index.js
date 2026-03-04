@@ -15,7 +15,9 @@ const toolDeclarations = [];
 
 for (const file of toolFiles) {
     const tool = require(path.join(toolsDir, file));
-    availableTools[tool.declaration.name] = tool.handler;
+    // The new OpenAI schema stores the name under declaration.function.name
+    const toolName = tool.declaration.function?.name || tool.declaration.name;
+    availableTools[toolName] = tool.handler;
     toolDeclarations.push(tool.declaration);
 }
 
