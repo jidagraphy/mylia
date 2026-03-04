@@ -86,6 +86,32 @@ const ensureSetup = async () => {
         process.env.WORKSPACE_PATH = resolved;
         console.log(`Workspace set to: ${resolved}`);
     }
+    // 4. Validate required environment variables
+    const { DISCORD_BOT_TOKEN, AI_PROVIDER, OPENROUTER_API_KEY, GEMINI_API_KEY, OLLAMA_URL } = process.env;
+
+    if (!DISCORD_BOT_TOKEN || DISCORD_BOT_TOKEN === 'your_discord_bot_token_here') {
+        console.error('❌ Error: DISCORD_BOT_TOKEN is missing or invalid.');
+        console.log('💡 Run `mylia config` or edit your .env file to set it.');
+        process.exit(1);
+    }
+
+    if (AI_PROVIDER === 'openrouter' && (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key_here')) {
+        console.error('❌ Error: OPENROUTER_API_KEY is missing for the "openrouter" provider.');
+        console.log('💡 Run `mylia config` to set it, or change your AI_PROVIDER.');
+        process.exit(1);
+    }
+
+    if (AI_PROVIDER === 'gemini' && (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here')) {
+        console.error('❌ Error: GEMINI_API_KEY is missing for the "gemini" provider.');
+        console.log('💡 Run `mylia config` to set it, or change your AI_PROVIDER.');
+        process.exit(1);
+    }
+
+    if (AI_PROVIDER === 'ollama' && !OLLAMA_URL) {
+        console.error('❌ Error: OLLAMA_URL is missing for the "ollama" provider.');
+        console.log('💡 Run `mylia config` to set it (default: http://127.0.0.1:11434).');
+        process.exit(1);
+    }
 };
 
 // ── Commands ──

@@ -45,7 +45,13 @@ The easiest way to install and run mylia is via npm:
 npm install -g @jidagraphy/mylia
 ```
 
-On your first run, it will auto-create your configuration and prompt you for a workspace path (default: `~/.mylia`) where all agent data is stored.
+On your first run, it will auto-create your configuration folder and prompt you for a workspace path (default: `~/.mylia`) where all agent data is stored.
+
+**Important:** Before starting the agent, you must configure your API keys:
+```bash
+mylia config
+```
+This will open an interactive menu to set your `DISCORD_BOT_TOKEN` and your chosen AI provider's API key.
 
 *(Alternatively, to run from source, clone the repo, run `npm install`, and use `npm link` to make the CLI available.)*
 
