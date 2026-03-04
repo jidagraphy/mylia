@@ -63,13 +63,19 @@ client.on(Events.MessageCreate, async (message) => {
         console.log(`[AI] ${response.content || '(tool calls)'}`);
         appendToHistory(currentMessage);
 
-        // Handle tool calls natively (no loop, 1 execution per message max)
-        if (response.tool_calls?.length > 0) {
+        const context = [...history, currentMessage];
+        let iterations = 0;
+        const maxIterations = 3;
+
+        // Handle tool calls in an agentic loop (up to maxIterations)
+        while (response.tool_calls?.length > 0 && iterations < maxIterations) {
+            iterations++;
+            console.log(`[Tool Loop] Iteration ${iterations}/${maxIterations}`);
             console.log('Tool calls:', JSON.stringify(response.tool_calls, null, 2));
 
             // Append the assistant's tool call message
             appendToHistory(response);
-            const context = [...history, currentMessage, response];
+            context.push(response);
 
             const currentToolResults = [];
             for (const tc of response.tool_calls) {
@@ -93,26 +99,28 @@ client.on(Events.MessageCreate, async (message) => {
             }
 
             // After tools execute, ask the AI to form a response
-            const synthesizedPrompt = `Recent tool execution results:\n${currentToolResults.join('\n')}\n\nBased on the tool execution results above, continue the conversation.`;
+            let synthesizedPrompt = `Recent tool execution results:\n${currentToolResults.join('\n')}\n\nBased on the tool execution results above, continue the conversation.`;
+
+            // On the final iteration, strongly encourage a text response
+            if (iterations === maxIterations) {
+                synthesizedPrompt += '\n\nNote: You have reached the maximum number of tool execution attempts. You MUST generate a final text response to the user explaining what you found or why you failed, instead of calling another tool.';
+            }
+
             const followUp = { role: 'user', content: synthesizedPrompt };
 
             console.log('[Follow-up] Sending follow-up chat...');
             response = await chat(context, systemInstruction, toolDeclarations, followUp);
             console.log('[Follow-up] Response:', JSON.stringify(response));
+        }
 
-            // If the AI still returns empty or tries MORE tool calls (since we disabled the loop)
-            // Force it to reply in text only
-            if (!response.content?.trim() || response.tool_calls?.length > 0) {
-                console.log('[Follow-up] Empty or more tool calls. Forcing text retry without tools...');
-                response = await chat(context, systemInstruction, [], followUp);
-                console.log('[Follow-up] Retry response:', JSON.stringify(response));
-            }
+        if (response.tool_calls?.length > 0 && iterations >= maxIterations) {
+            console.log('[Tool Loop] Reached max iterations. Stopping tool execution.');
+        }
 
-            // Last resort: if it STILL failed both tries, give a friendly generic failure
-            if (!response.content?.trim()) {
-                console.log('[Follow-up ERROR] Both tries failed. Final state:', JSON.stringify(response));
-                response = { role: 'assistant', content: 'I tried to use my tools to find the answer, but the commands failed or returned unreadable data. Can you clarify or provide a different search approach?' };
-            }
+        // Last resort: if it hit max iterations and still returned empty, give a friendly generic failure
+        if (!response.content?.trim()) {
+            console.log('[Follow-up ERROR] Final state empty. Using fallback text.');
+            response = { role: 'assistant', content: 'I tried to use my tools a few times to find the answer, but the commands failed or returned unreadable data. Can you clarify or provide a different search approach?' };
         }
 
         const answer = response.content || 'I encountered an error generating a response.';
