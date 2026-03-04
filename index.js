@@ -30,8 +30,12 @@ client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot) return;
     if (!message.guild ? false : !message.mentions.has(client.user.id)) return;
 
+    let typingInterval;
     try {
         await message.channel.sendTyping();
+        typingInterval = setInterval(() => {
+            message.channel.sendTyping().catch(() => { });
+        }, 8000);
 
         // Handle /new command for explicit session renewal
         // if (message.content.trim() === '/new') {
@@ -108,12 +112,14 @@ client.on(Events.MessageCreate, async (message) => {
         const answer = response.content;
         appendToHistory({ role: 'assistant', content: answer });
 
+        clearInterval(typingInterval);
         await message.reply(answer.length > 2000 ? answer.substring(0, 1996) + '...' : answer);
 
 
 
 
     } catch (error) {
+        clearInterval(typingInterval);
         console.error('Failed to process message:', error);
         await message.reply('Sorry, I encountered an error.');
     }
