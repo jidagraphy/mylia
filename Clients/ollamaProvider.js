@@ -33,7 +33,7 @@ const toOllamaTools = (geminiTools) => {
 const chat = async (model, history, systemInstruction, tools, currentMessage) => {
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
-            return { role: 'tool', content: msg.content, name: msg.name };
+            return { role: 'tool', content: msg.content || '', name: msg.name || 'unknown_tool' };
         }
         if (msg.role === 'assistant') {
             const out = { role: 'assistant', content: msg.content || '' };

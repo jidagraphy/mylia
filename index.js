@@ -82,12 +82,30 @@ client.on(Events.MessageCreate, async (message) => {
             }
 
             // After all tools execute, ask the AI to form a final user-facing response
-            // We pass the full updated context, and an empty dummy user message or just rely on context
-            // Many APIs prefer a dummy system/user message to trigger the final turn
-            response = await chat(context, systemInstruction, toolDeclarations, { role: 'user', content: 'Based on the tool execution results above, continue the conversation naturally and respond appropriately.' });
+            const followUp = { role: 'user', content: 'Based on the tool execution results above, continue the conversation naturally and respond appropriately.' };
+            console.log('[Follow-up] Sending follow-up chat with tools...');
+            response = await chat(context, systemInstruction, toolDeclarations, followUp);
+            console.log('[Follow-up] Response:', JSON.stringify({ content: response.content, tool_calls: response.tool_calls?.length || 0 }));
+
+            // If the AI still returns empty or tries more tool calls, retry without tools to force text
+            if (!response.content || response.tool_calls?.length > 0) {
+                console.log('[Follow-up] Empty or more tool calls — retrying without tools...');
+                response = await chat(context, systemInstruction, [], followUp);
+                console.log('[Follow-up] Retry response:', JSON.stringify({ content: response.content }));
+            }
+
+            // Last resort: if still empty, use the tool results directly
+            if (!response.content) {
+                const toolResults = context
+                    .filter(m => m.role === 'tool')
+                    .map(m => `[${m.name}]: ${m.content}`)
+                    .join('\n');
+                response = { role: 'assistant', content: toolResults || 'Tools executed but returned no usable response.' };
+                console.log('[Follow-up] Using raw tool results as response.');
+            }
         }
 
-        const answer = response.content || 'Done.';
+        const answer = response.content;
         appendToHistory({ role: 'assistant', content: answer });
 
         await message.reply(answer.length > 2000 ? answer.substring(0, 1996) + '...' : answer);

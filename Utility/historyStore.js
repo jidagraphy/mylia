@@ -87,8 +87,9 @@ const getSessionHistoryByTokens = (maxTokens = 4000) => {
         if (currentTokens > maxTokens && windowedHistory.length > 0) {
             const firstMsg = windowedHistory[0];
             // Safe boundaries to start a conversation snippet:
-            // 1. A user message
-            // 2. An assistant message that did NOT call tools
+            // - A user message
+            // - An assistant message that did NOT call tools
+            // Never break at: tool responses or assistant tool_call messages (they'd be orphaned)
             const isSafeBoundary = firstMsg.role === 'user' || (firstMsg.role === 'assistant' && !firstMsg.tool_calls);
 
             if (isSafeBoundary) {
@@ -97,7 +98,51 @@ const getSessionHistoryByTokens = (maxTokens = 4000) => {
         }
     }
 
-    return windowedHistory;
+    return sanitizeHistory(windowedHistory);
+};
+
+/**
+ * Removes incomplete tool-call sequences from anywhere in the history.
+ * An assistant message with tool_calls MUST be followed by the corresponding tool responses.
+ * If not, the entire orphaned sequence is removed.
+ */
+const sanitizeHistory = (messages) => {
+    const clean = [];
+
+    for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+
+        if (msg.role === 'assistant' && msg.tool_calls?.length > 0) {
+            // Check if the next messages are the matching tool responses
+            const expectedCount = msg.tool_calls.length;
+            let hasAllResponses = true;
+
+            for (let j = 0; j < expectedCount; j++) {
+                const next = messages[i + 1 + j];
+                if (!next || next.role !== 'tool') {
+                    hasAllResponses = false;
+                    break;
+                }
+            }
+
+            if (hasAllResponses) {
+                // Keep the assistant + all its tool responses
+                clean.push(msg);
+                for (let j = 0; j < expectedCount; j++) {
+                    clean.push(messages[i + 1 + j]);
+                }
+                i += expectedCount; // Skip past the tool responses
+            }
+            // else: skip this assistant message entirely (orphaned)
+        } else if (msg.role === 'tool') {
+            // Orphaned tool response without a preceding assistant tool_call — skip
+            continue;
+        } else {
+            clean.push(msg);
+        }
+    }
+
+    return clean;
 };
 
 /**
