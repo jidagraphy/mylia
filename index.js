@@ -71,6 +71,7 @@ client.on(Events.MessageCreate, async (message) => {
             appendToHistory(response);
             const context = [...history, currentMessage, response];
 
+            const currentToolResults = [];
             for (const tc of response.tool_calls) {
                 const fn = availableTools[tc.function.name];
                 if (fn) {
@@ -81,13 +82,16 @@ client.on(Events.MessageCreate, async (message) => {
                     const toolMsg = { role: 'tool', content: result, name: tc.function.name };
                     appendToHistory(toolMsg);
                     context.push(toolMsg);
+                    currentToolResults.push(`[${tc.function.name}]: ${result}`);
                 } else {
                     console.warn(`Tool not found: ${tc.function.name}`);
                 }
             }
 
             // After all tools execute, ask the AI to form a final user-facing response
-            const followUp = { role: 'user', content: 'Based on the tool execution results above, continue the conversation naturally and respond appropriately.' };
+            const synthesizedPrompt = `Recent tool execution results:\n${currentToolResults.join('\n')}\n\nBased on the tool execution results above, continue the conversation naturally and respond appropriately to the user.`;
+            const followUp = { role: 'user', content: synthesizedPrompt };
+
             console.log('[Follow-up] Sending follow-up chat with tools...');
             response = await chat(context, systemInstruction, toolDeclarations, followUp);
             console.log('[Follow-up] Response:', JSON.stringify({ content: response.content, tool_calls: response.tool_calls?.length || 0 }));
@@ -101,11 +105,7 @@ client.on(Events.MessageCreate, async (message) => {
 
             // Last resort: if still empty, use the tool results directly
             if (!response.content) {
-                const toolResults = context
-                    .filter(m => m.role === 'tool')
-                    .map(m => `[${m.name}]: ${m.content}`)
-                    .join('\n');
-                response = { role: 'assistant', content: toolResults || 'Tools executed but returned no usable response.' };
+                response = { role: 'assistant', content: currentToolResults.join('\n') || 'Tools executed but returned no usable response.' };
                 console.log('[Follow-up] Using raw tool results as response.');
             }
         }
