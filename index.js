@@ -7,7 +7,7 @@ const { Client, GatewayIntentBits, Partials, Events } = require('discord.js');
 const { chat } = require('./Clients/provider');
 const { appendToHistory, getSessionHistoryByTokens } = require('./Utility/historyStore');
 const { buildSystemInstruction } = require('./Utility/contextBuilder');
-const { checkAutoCompaction, generateSessionDiary } = require('./Utility/summarizer');
+const { generateSessionDiary } = require('./Tools/compactHistory');
 const { startSession, endSession, checkAndRenewSession } = require('./Utility/sessionManager');
 const { availableTools, toolDeclarations } = require('./Tools');
 
@@ -38,7 +38,7 @@ client.on(Events.MessageCreate, async (message) => {
         //     await checkAndRenewSession(async (oldSessionId) => {
         //         await generateSessionDiary(oldSessionId);
         //     });
-        //     await message.reply('새로운 세션이 시작되었습니다. 이전 세션 다이어리가 저장되었습니다.');
+        //     await message.reply('New session started. Previous session diary has been saved.');
         //     return;
         // }
 
@@ -84,7 +84,7 @@ client.on(Events.MessageCreate, async (message) => {
             // After all tools execute, ask the AI to form a final user-facing response
             // We pass the full updated context, and an empty dummy user message or just rely on context
             // Many APIs prefer a dummy system/user message to trigger the final turn
-            response = await chat(context, systemInstruction, toolDeclarations, { role: 'user', content: '방금 도구 실행 결과를 바탕으로, 자연스럽게 이전 대화를 이어나가며 적절한 대답을 해줘.' });
+            response = await chat(context, systemInstruction, toolDeclarations, { role: 'user', content: 'Based on the tool execution results above, continue the conversation naturally and respond appropriately.' });
         }
 
         const answer = response.content || 'Done.';
@@ -92,8 +92,8 @@ client.on(Events.MessageCreate, async (message) => {
 
         await message.reply(answer.length > 2000 ? answer.substring(0, 1996) + '...' : answer);
 
-        // Auto-compaction check (fire-and-forget) - temporarily disabled
-        checkAutoCompaction().catch(e => console.error('[Auto-Compaction]', e.message));
+
+
 
     } catch (error) {
         console.error('Failed to process message:', error);

@@ -1,23 +1,44 @@
-const { updateMemory } = require('../Utility/memoryStore');
+const fs = require('fs');
+const path = require('path');
+
+const memoryFile = path.resolve(__dirname, '../Agent/memory.md');
 
 /**
- * Saves a fact to long-term memory.
- * @param {Object} args - { fact: string }
+ * Initializes the memory file if it doesn't exist.
+ */
+const initMemory = () => {
+    if (!fs.existsSync(memoryFile)) {
+        fs.writeFileSync(memoryFile, '# Agent Memory\n\nThis file contains learned facts about the user.\n\n');
+    }
+};
+
+/**
+ * Rewrites memory.md with the provided content.
+ * Backs up the previous version to memory.md.bak first.
+ * @param {Object} args - { content: string }
  * @returns {Promise<string>}
  */
-const handler = async ({ fact }) => {
-    return updateMemory(fact);
+const handler = async ({ content }) => {
+    initMemory();
+    try {
+        fs.copyFileSync(memoryFile, `${memoryFile}.bak`);
+        fs.writeFileSync(memoryFile, content, 'utf8');
+        return 'Memory updated successfully.';
+    } catch (error) {
+        console.error('Failed to write memory:', error);
+        return `Error writing memory: ${error.message}`;
+    }
 };
 
 const declaration = {
     name: "updateMemory",
-    description: "Saves a concise, important fact about the user to long-term memory (memory.md). Use for permanent facts: name, preferences, decisions.",
+    description: "Rewrites the entire long-term memory file (memory.md) with the provided content. Use readMemory first via your system context to see current facts, then call this with the full updated file content. Preserve existing facts unless they are outdated or incorrect. Keep entries concise.",
     parameters: {
         type: "OBJECT",
         properties: {
-            fact: { type: "STRING", description: "The concrete fact to remember." }
+            content: { type: "STRING", description: "The complete new content for memory.md, replacing everything currently in the file." }
         },
-        required: ["fact"]
+        required: ["content"]
     }
 };
 

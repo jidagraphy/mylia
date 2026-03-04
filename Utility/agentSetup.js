@@ -18,7 +18,7 @@ function setupAgentEnvironment() {
         }
     }
 
-    const filesToCopy = ['agent.md', 'memory.md'];
+    const filesToCopy = ['agent.md', 'memory.md', 'soul.md', 'user.md'];
     for (const file of filesToCopy) {
         const sourcePath = path.join(templateDir, file);
         const targetPath = path.join(agentDir, file);
