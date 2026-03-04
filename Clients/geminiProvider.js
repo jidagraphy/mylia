@@ -1,7 +1,3 @@
-const { GoogleGenAI } = require('@google/genai');
-
-const ai = new GoogleGenAI({});
-
 /**
  * Converts an internal message object to Gemini's Content format.
  */
@@ -11,7 +7,7 @@ const toGeminiContent = (msg) => {
     }
     if (msg.role === 'tool') {
         return {
-            role: 'user',
+            role: 'user', // Gemini function responses are sent as 'user'
             parts: [{ functionResponse: { name: msg.name, response: { result: msg.content } } }]
         };
     }
@@ -32,7 +28,7 @@ const toGeminiTools = (openAiTools) => {
             name: fn.name,
             description: fn.description,
             parameters: {
-                type: 'OBJECT', // Gemini requires uppercase
+                type: 'OBJECT', // Gemini requires uppercase types
                 properties: Object.fromEntries(
                     Object.entries(fn.parameters?.properties || {}).map(([k, v]) => [
                         k, { type: v.type.toUpperCase(), description: v.description }
@@ -45,49 +41,84 @@ const toGeminiTools = (openAiTools) => {
 };
 
 /**
- * Chat with tool support via Gemini.
+ * Chat with tool support via Gemini REST API.
  */
 const chat = async (model, history, systemInstruction, tools, currentMessage) => {
-    const config = { systemInstruction };
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const contents = [...history, currentMessage].map(toGeminiContent);
+
+    const payload = {
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        contents
+    };
+
     const geminiTools = toGeminiTools(tools);
-    if (geminiTools?.length > 0) config.tools = [{ functionDeclarations: geminiTools }];
-
-    const session = ai.chats.create({
-        model,
-        config,
-        history: history.map(toGeminiContent),
-    });
-
-    const parts = currentMessage.role === 'tool'
-        ? [{ functionResponse: { name: currentMessage.name, response: { result: currentMessage.content } } }]
-        : [{ text: currentMessage.content }];
-
-    const response = await session.sendMessage({ message: parts });
-
-    const result = { role: 'assistant', content: '', tool_calls: [] };
-
-    if (response.functionCalls?.length > 0) {
-        result.tool_calls = response.functionCalls.map(fc => ({
-            function: { name: fc.name, arguments: fc.args }
-        }));
-        const rawParts = response.candidates?.[0]?.content?.parts;
-        if (rawParts) result._rawParts = rawParts;
+    if (geminiTools && geminiTools.length > 0) {
+        payload.tools = [{ functionDeclarations: geminiTools }];
     }
 
-    if (response.text) result.content = response.text;
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(`Gemini API Error: ${data.error?.message || JSON.stringify(data)}`);
+    }
+
+    const candidate = data.candidates?.[0];
+    if (!candidate) return { role: 'assistant', content: '', tool_calls: [] };
+
+    const result = { role: 'assistant', content: '', tool_calls: [] };
+    const parts = candidate.content?.parts || [];
+
+    // Extract text
+    const textPart = parts.find(p => p.text);
+    if (textPart) result.content = textPart.text;
+
+    // Extract function calls
+    const functionCallParts = parts.filter(p => p.functionCall);
+    if (functionCallParts.length > 0) {
+        result.tool_calls = functionCallParts.map(fc => ({
+            function: { name: fc.functionCall.name, arguments: fc.functionCall.args }
+        }));
+        // Store raw parts to echo back in history for next round
+        result._rawParts = parts;
+    }
 
     return result;
 };
 
 /**
- * Simple text completion (no tools, no history). Used for summarization.
+ * Simple text completion via Gemini REST API (no tools, no history). Used for summarization.
  */
 const complete = async (model, prompt) => {
-    const response = await ai.models.generateContent({
-        model,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const payload = {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    };
+
+    const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
     });
-    return response.text?.trim() || '';
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(`Gemini API Error: ${data.error?.message || JSON.stringify(data)}`);
+
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 };
 
 module.exports = { chat, complete };

@@ -6,7 +6,7 @@
 
 > *A minimalist, lightweight AI agent framework.*
 
-**mylia** is designed to provide only the bare minimum required for a functional, persistent AI agent, keeping dependencies as low as possible.<br>
+**mylia** (pronounced 'maria' or '마리아')is designed to provide only the bare minimum required for a functional, persistent AI agent, keeping dependencies as low as possible.<br>
 Heavily inspired by the philosophy of **OpenClaw**, `mylia` focuses on core agent functionalities without the unnecessary bloat.
 
 </div>
@@ -14,7 +14,7 @@ Heavily inspired by the philosophy of **OpenClaw**, `mylia` focuses on core agen
 ---
 ## 🛠️ Announcements
 
-This is a work in progress project! Currently only openrouter, ollama and Gemini API are supported.
+This is a work in progress project! Currently only openrouter, ollama and Gemini API are supported. (Gemini API is not tested yet!)
 I welcome any feedback and suggestions!
 
 ---
