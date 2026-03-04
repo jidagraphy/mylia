@@ -63,6 +63,9 @@ const chat = async (model, history, systemInstruction, tools, currentMessage) =>
     const ollamaTools = toOllamaTools(tools);
     if (ollamaTools) options.tools = ollamaTools;
 
+    // Uncomment this to see exactly what is sent to the AI
+    // console.log('[OllamaProvider] Sending messages:', JSON.stringify(messages, null, 2));
+
     const result = { role: 'assistant', content: '', tool_calls: [] };
 
     const stream = await ollama.chat(options);

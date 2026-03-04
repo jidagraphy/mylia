@@ -63,11 +63,11 @@ client.on(Events.MessageCreate, async (message) => {
         console.log(`[AI] ${response.content || '(tool calls)'}`);
         appendToHistory(currentMessage);
 
-        // Handle tool calls
+        // Handle tool calls natively (no loop, 1 execution per message max)
         if (response.tool_calls?.length > 0) {
             console.log('Tool calls:', JSON.stringify(response.tool_calls, null, 2));
 
-            // Append the assistant's tool call message to history
+            // Append the assistant's tool call message
             appendToHistory(response);
             const context = [...history, currentMessage, response];
 
@@ -85,32 +85,37 @@ client.on(Events.MessageCreate, async (message) => {
                     currentToolResults.push(`[${tc.function.name}]: ${result}`);
                 } else {
                     console.warn(`Tool not found: ${tc.function.name}`);
+                    const toolMsg = { role: 'tool', content: 'Tool not found', name: tc.function.name };
+                    appendToHistory(toolMsg);
+                    context.push(toolMsg);
+                    currentToolResults.push(`[${tc.function.name}]: Tool not found`);
                 }
             }
 
-            // After all tools execute, ask the AI to form a final user-facing response
-            const synthesizedPrompt = `Recent tool execution results:\n${currentToolResults.join('\n')}\n\nBased on the tool execution results above, continue the conversation naturally and respond appropriately to the user.`;
+            // After tools execute, ask the AI to form a response
+            const synthesizedPrompt = `Recent tool execution results:\n${currentToolResults.join('\n')}\n\nBased on the tool execution results above, continue the conversation.`;
             const followUp = { role: 'user', content: synthesizedPrompt };
 
-            console.log('[Follow-up] Sending follow-up chat with tools...');
+            console.log('[Follow-up] Sending follow-up chat...');
             response = await chat(context, systemInstruction, toolDeclarations, followUp);
-            // console.log('[Follow-up] Response:', JSON.stringify({ content: response.content, tool_calls: response.tool_calls?.length || 0 }));
+            console.log('[Follow-up] Response:', JSON.stringify(response));
 
-            // If the AI still returns empty or tries more tool calls, retry without tools to force text
-            if (!response.content || response.tool_calls?.length > 0) {
-                console.log('[Follow-up] Empty or more tool calls — retrying without tools...');
+            // If the AI still returns empty or tries MORE tool calls (since we disabled the loop)
+            // Force it to reply in text only
+            if (!response.content?.trim() || response.tool_calls?.length > 0) {
+                console.log('[Follow-up] Empty or more tool calls. Forcing text retry without tools...');
                 response = await chat(context, systemInstruction, [], followUp);
-                // console.log('[Follow-up] Retry response:', JSON.stringify({ content: response.content }));
+                console.log('[Follow-up] Retry response:', JSON.stringify(response));
             }
 
-            // Last resort: if still empty, use the tool results directly
-            if (!response.content) {
-                response = { role: 'assistant', content: currentToolResults.join('\n') || 'Tools executed but returned no usable response.' };
-                console.log('[Follow-up] Using raw tool results as response.');
+            // Last resort: if it STILL failed both tries, give a friendly generic failure
+            if (!response.content?.trim()) {
+                console.log('[Follow-up ERROR] Both tries failed. Final state:', JSON.stringify(response));
+                response = { role: 'assistant', content: 'I tried to use my tools to find the answer, but the commands failed or returned unreadable data. Can you clarify or provide a different search approach?' };
             }
         }
 
-        const answer = response.content;
+        const answer = response.content || 'I encountered an error generating a response.';
         console.log(`[Reply] ${answer}`);
         appendToHistory({ role: 'assistant', content: answer });
 

@@ -12,7 +12,7 @@ const handler = async ({ command }) => {
                 resolve(`Error: ${error.message}\nStderr: ${stderr}`);
                 return;
             }
-            resolve(stdout || 'Command executed successfully with no output.');
+            resolve(stdout || 'Command executed successfully with no output. (Note to AI: This means the command returned no data. If you were searching for information, reading a file, or expecting a specific result, it failed to find anything. Stop using tools for now and politely explain to the user that no information was found.)');
         });
     });
 };
