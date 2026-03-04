@@ -39,21 +39,21 @@ The framework is built around efficiently achieving exactly five essential capab
 
 ### Installation
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. On first run, `.env` is auto-created from `.env.template`.
-3. You'll be prompted for a workspace path (default: `~/.mylia`) where all agent data is stored.
+The easiest way to install and run mylia is via npm:
+
+```bash
+npm install -g @jidagraphy/mylia
+```
+
+On your first run, it will auto-create your configuration and prompt you for a workspace path (default: `~/.mylia`) where all agent data is stored.
+
+*(Alternatively, to run from source, clone the repo, run `npm install`, and use `npm link` to make the CLI available.)*
 
 ### Running the Agent
 
-Use the built-in CLI to manage mylia:
+Use the built-in CLI to manage mylia from anywhere:
 
 ```bash
-# Install globally (run once)
-npm link
-
 # Daemon management
 mylia start              # Start as background daemon
 mylia stop               # Stop the daemon

@@ -1,6 +1,8 @@
 {
-  "name": "mylia",
+  "name": "@jidagraphy/mylia",
   "version": "1.0.0",
+  "description": "My Little AI - tiny AI agent",
+  "url": "https://github.com/jidagraphy/mylia.git",
   "main": "app.js",
   "bin": {
     "mylia": "./cli.js"
@@ -8,10 +10,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "ai",
+    "agent",
+    "discord",
+    "ai-agent",
+    "assistant"
+  ],
+  "homepage": "https://www.jidagraphy.com",
   "author": "Jida",
   "license": "MIT",
-  "description": "",
   "dependencies": {
     "@google/genai": "^1.43.0",
     "discord.js": "^14.25.1",
