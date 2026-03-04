@@ -2,14 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const { getWorkspacePath } = require('../Utility/workspace');
 
-const soulFile = () => path.join(getWorkspacePath(), 'soul.md');
+const soulFile = path.join(getWorkspacePath(), 'soul.md');
 
 /**
  * Initializes the soul file from template if it doesn't exist.
  */
 const initSoul = () => {
-    if (!fs.existsSync(soulFile())) {
-        fs.writeFileSync(soulFile(), '# Soul\n');
+    if (!fs.existsSync(soulFile)) {
+        fs.writeFileSync(soulFile, '# Soul\n');
     }
 };
 
@@ -22,8 +22,8 @@ const initSoul = () => {
 const handler = async ({ content }) => {
     initSoul();
     try {
-        fs.copyFileSync(soulFile(), `${soulFile()}.bak`);
-        fs.writeFileSync(soulFile(), content, 'utf8');
+        fs.copyFileSync(soulFile, `${soulFile}.bak`);
+        fs.writeFileSync(soulFile, content, 'utf8');
         return 'Soul updated successfully.';
     } catch (error) {
         console.error('Failed to write soul:', error);

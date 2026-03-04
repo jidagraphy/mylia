@@ -3,19 +3,19 @@ const path = require('path');
 const { getSessionFilename } = require('./sessionManager');
 const { getWorkspacePath } = require('./workspace');
 
-const chatHistoryDir = () => path.join(getWorkspacePath(), 'Sessions');
+const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
 
 /**
  * Returns the file path for the current session's chat history.
  */
-const getHistoryPath = () => path.join(chatHistoryDir(), getSessionFilename());
+const getHistoryPath = () => path.join(chatHistoryDir, getSessionFilename());
 
 /**
  * Ensures the Sessions directory exists.
  */
 const ensureDir = () => {
-    if (!fs.existsSync(chatHistoryDir())) {
-        fs.mkdirSync(chatHistoryDir(), { recursive: true });
+    if (!fs.existsSync(chatHistoryDir)) {
+        fs.mkdirSync(chatHistoryDir, { recursive: true });
     }
 };
 
@@ -152,7 +152,7 @@ const sanitizeHistory = (messages) => {
  * @returns {Array} Array of message objects.
  */
 const getFullHistory = (sessionId) => {
-    const filePath = path.join(chatHistoryDir(), `${sessionId}.jsonl`);
+    const filePath = path.join(chatHistoryDir, `${sessionId}.jsonl`);
     if (!fs.existsSync(filePath)) return [];
 
     try {
