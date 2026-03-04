@@ -7,13 +7,14 @@ const userFile = path.resolve(__dirname, '../Agent/user.md');
 const memoryFile = path.resolve(__dirname, '../Agent/memory.md');
 const memoryDir = path.resolve(__dirname, '../Agent/Memory');
 
-const loadAgentIdentity = () => fs.readFileSync(agentMdPath, 'utf-8');
+const loadAgentIdentity = () => `=== AGENT ===\n${fs.readFileSync(agentMdPath, 'utf-8').trim()}`;
 
 const loadSoul = () => {
     if (!fs.existsSync(soulFile)) return '';
     try {
-        const soul = fs.readFileSync(soulFile, 'utf8');
-        return soul || '';
+        const soul = fs.readFileSync(soulFile, 'utf8').trim();
+        if (!soul) return '';
+        return `=== SOUL ===\n${soul}`;
     } catch {
         return '';
     }
@@ -22,8 +23,9 @@ const loadSoul = () => {
 const loadUser = () => {
     if (!fs.existsSync(userFile)) return '';
     try {
-        const user = fs.readFileSync(userFile, 'utf8');
-        return user || '';
+        const user = fs.readFileSync(userFile, 'utf8').trim();
+        if (!user) return '';
+        return `=== USER PROFILE ===\n${user}`;
     } catch {
         return '';
     }
@@ -32,9 +34,9 @@ const loadUser = () => {
 const loadLongTermMemory = () => {
     if (!fs.existsSync(memoryFile)) return '';
     try {
-        const mem = fs.readFileSync(memoryFile, 'utf8');
+        const mem = fs.readFileSync(memoryFile, 'utf8').trim();
         if (!mem) return '';
-        return `## Long-Term Memory\n${mem}`;
+        return `=== LONG-TERM MEMORY ===\n${mem}`;
     } catch {
         return '';
     }
@@ -61,7 +63,11 @@ const loadRecentSessionDiaries = (count = 2) => {
             diaries += `\n\n## Session Diary (${sessionId})\n${log}`;
         }
     }
-    return diaries.trim();
+
+    if (diaries) {
+        return `=== RECENT SESSION DIARIES ===${diaries}`;
+    }
+    return '';
 };
 
 /**
