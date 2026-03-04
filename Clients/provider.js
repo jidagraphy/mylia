@@ -11,6 +11,8 @@ const getProvider = () => {
             return require('./geminiProvider');
         case 'ollama':
             return require('./ollamaProvider');
+        case 'openrouter':
+            return require('./openrouterProvider');
         default:
             throw new Error(`Unknown AI_PROVIDER: ${providerName}`);
     }
