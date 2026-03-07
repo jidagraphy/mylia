@@ -1,10 +1,5 @@
 const { exec } = require('child_process');
 
-/**
- * Executes a shell command and returns the output.
- * @param {Object} args - { command: string }
- * @returns {Promise<string>}
- */
 const handler = async ({ command }) => {
     return new Promise((resolve) => {
         exec(command, (error, stdout, stderr) => {

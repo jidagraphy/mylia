@@ -1,8 +1,6 @@
 require('dotenv').config();
 
 const { setupAgentEnvironment } = require('./Utility/agentSetup');
-setupAgentEnvironment(); // Ensure workspace folders and template files exist
-
 const { Client, GatewayIntentBits, Partials, Events } = require('discord.js');
 const { chat } = require('./Clients/provider');
 const { appendToHistory, getSessionHistoryByTokens } = require('./Utility/historyStore');
@@ -10,6 +8,8 @@ const { buildSystemInstruction } = require('./Utility/contextBuilder');
 const { generateSessionDiary } = require('./Tools/compactHistory');
 const { startSession, endSession, checkAndRenewSession } = require('./Utility/sessionManager');
 const { availableTools, toolDeclarations } = require('./Tools');
+
+setupAgentEnvironment();
 
 const client = new Client({
     intents: [
@@ -23,7 +23,6 @@ const client = new Client({
 
 client.once(Events.ClientReady, (c) => {
     console.log(`Ready! Logged in as ${c.user.tag}`);
-    // Session is now auto-initialized by sessionManager module load.
 });
 
 client.on(Events.MessageCreate, async (message) => {
@@ -37,6 +36,7 @@ client.on(Events.MessageCreate, async (message) => {
             message.channel.sendTyping().catch(() => { });
         }, 8000);
 
+        // TODO: discord interactive commands
         // Handle /new command for explicit session renewal
         // if (message.content.trim() === '/new') {
         //     await checkAndRenewSession(async (oldSessionId) => {
@@ -46,7 +46,6 @@ client.on(Events.MessageCreate, async (message) => {
         //     return;
         // }
 
-        // Check for inactivity timeout and renew session if needed
         const { renewed, previousSessionId } = await checkAndRenewSession(generateSessionDiary);
         if (renewed) {
             console.log(`[Session] Implicitly renewed session due to inactivity.`);
@@ -67,13 +66,12 @@ client.on(Events.MessageCreate, async (message) => {
         let iterations = 0;
         const maxIterations = 3;
 
-        // Handle tool calls in an agentic loop (up to maxIterations)
+        // agentic loop here
         while (response.tool_calls?.length > 0 && iterations < maxIterations) {
             iterations++;
             console.log(`[Tool Loop] Iteration ${iterations}/${maxIterations}`);
             console.log('Tool calls:', JSON.stringify(response.tool_calls, null, 2));
 
-            // Append the assistant's tool call message
             appendToHistory(response);
             context.push(response);
 
@@ -109,19 +107,16 @@ client.on(Events.MessageCreate, async (message) => {
                 }
             }
 
-            // On the final iteration, add a nudge to respond with text
+            // final follow up iteration logic here - IS THIS THE RIGHT WAY?
             if (iterations === maxIterations) {
                 context.push({ role: 'user', content: 'You have reached the maximum number of tool attempts. Please provide a final text response summarizing what you found.' });
             }
 
-            // Pop the last message from context to pass as currentMessage
-            // This way history = [..., assistant(tool_calls), tool_result(s)...]
-            // and currentMessage = last tool result (or the max-iteration nudge)
             const lastMsg = context.pop();
 
             console.log('[Follow-up] Sending follow-up chat with tool results in context...');
             response = await chat(context, systemInstruction, toolDeclarations, lastMsg);
-            // Push it back so history stays complete
+            // Push it back so history stays complete - y tho
             context.push(lastMsg);
             console.log('[Follow-up] Response:', JSON.stringify(response));
         }
@@ -130,7 +125,7 @@ client.on(Events.MessageCreate, async (message) => {
             console.log('[Tool Loop] Reached max iterations. Stopping tool execution.');
         }
 
-        // Last resort: if it hit max iterations and still returned empty, give a friendly generic failure
+        // last resort failsafe here
         if (!response.content?.trim()) {
             console.log('[Follow-up ERROR] Final state empty. Using fallback text.');
             response = { role: 'assistant', content: 'I tried to use my tools a few times to find the answer, but the commands failed or returned unreadable data. Can you clarify or provide a different search approach?' };
@@ -153,11 +148,8 @@ client.on(Events.MessageCreate, async (message) => {
     }
 });
 
-// Graceful shutdown
 const shutdown = async () => {
     console.log('\nShutting down gracefully...');
-    // We no longer forcefully end sessions on shutdown.
-    // They will be naturally renewed via inactivity timeout.
     client.destroy();
     process.exit(0);
 };

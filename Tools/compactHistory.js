@@ -8,18 +8,9 @@ const { getWorkspacePath } = require('../Utility/workspace');
 
 const memoryDir = path.join(getWorkspacePath(), 'Memory');
 
-/**
- * Ensures the Memory directory exists.
- */
 const ensureMemoryDir = () => {
     if (!fs.existsSync(memoryDir)) fs.mkdirSync(memoryDir, { recursive: true });
 };
-
-/**
- * Reads a session diary if it exists.
- * @param {string} sessionId - YYYY-MM-DD_NNN
- * @returns {string}
- */
 const readSessionDiary = (sessionId) => {
     const filePath = path.join(memoryDir, `${sessionId}.md`);
     if (!fs.existsSync(filePath)) return '';
@@ -27,11 +18,6 @@ const readSessionDiary = (sessionId) => {
     catch { return ''; }
 };
 
-/**
- * Summarizes a given session's history into a session diary.
- * @param {string} sessionId
- * @returns {Promise<string>} Status message.
- */
 const generateSessionDiary = async (sessionId) => {
     const messages = getFullHistory(sessionId);
 
@@ -62,18 +48,11 @@ const generateSessionDiary = async (sessionId) => {
     }
 };
 
-/**
- * Compacts the current chat history into a daily summary and starts a new session.
- * @returns {Promise<string>}
- */
 const handler = async () => {
     const currentSessionId = getSessionId();
     if (!currentSessionId) return 'No active session to compact.';
 
-    // Explicitly generate diary for current session
     const resultMessage = await generateSessionDiary(currentSessionId);
-
-    // Start a fresh session since we just consolidated the old one
     startSession();
 
     return resultMessage;

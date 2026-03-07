@@ -1,44 +1,24 @@
-/**
- * Unified AI provider interface.
- * Reads AI_PROVIDER and AI_MODEL from process.env to route calls.
- */
 
-const getProvider = () => {
-    const providerName = process.env.AI_PROVIDER || 'ollama';
+const provider = process.env.AI_PROVIDER;
+const model = process.env.AI_MODEL;
 
-    switch (providerName) {
-        case 'gemini':
-            return require('./geminiProvider');
-        case 'ollama':
-            return require('./ollamaProvider');
-        case 'openrouter':
-            return require('./openrouterProvider');
-        default:
-            throw new Error(`Unknown AI_PROVIDER: ${providerName}`);
+const getActiveProvider = () => {
+
+    try {
+        return require(`./${provider}Provider`);
+    } catch (error) {
+        throw new Error(`Configured AI_PROVIDER '${providerName}' not found or failed to load.`);
     }
 };
 
-const getModel = () => process.env.AI_MODEL || 'gemini-3-flash-preview';
 
-/**
- * Chat with tool support.
- * @param {Array} history - Previous messages.
- * @param {string} systemInstruction - Full system prompt.
- * @param {Array} tools - Tool declarations.
- * @param {Object} message - Current message { role, content, name? }.
- * @returns {Promise<Object>} { role, content, tool_calls?, _rawParts? }
- */
 const chat = (history, systemInstruction, tools, message) => {
-    return getProvider().chat(getModel(), history, systemInstruction, tools, message);
+    return getActiveProvider().chat(model, history, systemInstruction, tools, message);
 };
 
-/**
- * Simple text completion (no tools, no history).
- * @param {string} prompt - The prompt text.
- * @returns {Promise<string>} Completed text.
- */
 const complete = (prompt) => {
-    return getProvider().complete(getModel(), prompt);
+    return getActiveProvider().complete(model, prompt);
 };
 
 module.exports = { chat, complete };
+

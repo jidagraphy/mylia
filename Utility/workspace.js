@@ -2,10 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-/**
- * Returns the absolute workspace path. Validates that it exists and is accessible.
- * Exits with a clear error if something is wrong.
- */
+
 const getWorkspacePath = () => {
     const ws = process.env.WORKSPACE_PATH;
     if (!ws || !ws.trim()) {

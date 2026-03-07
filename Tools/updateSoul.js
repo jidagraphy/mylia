@@ -4,21 +4,12 @@ const { getWorkspacePath } = require('../Utility/workspace');
 
 const soulFile = path.join(getWorkspacePath(), 'soul.md');
 
-/**
- * Initializes the soul file from template if it doesn't exist.
- */
 const initSoul = () => {
     if (!fs.existsSync(soulFile)) {
         fs.writeFileSync(soulFile, '# Soul\n');
     }
 };
 
-/**
- * Rewrites soul.md with the provided content.
- * Backs up the previous version to soul.md.bak first.
- * @param {Object} args - { content: string }
- * @returns {Promise<string>}
- */
 const handler = async ({ content }) => {
     initSoul();
     try {

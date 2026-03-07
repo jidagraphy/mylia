@@ -8,20 +8,27 @@ const INACTIVE_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
 let sessionId = null;
 let lastActivityTime = null;
-
-/**
- * Ensures the Sessions directory exists.
- */
 const ensureDir = () => {
     if (!fs.existsSync(chatHistoryDir)) {
         fs.mkdirSync(chatHistoryDir, { recursive: true });
     }
 };
 
-/**
- * Finds the most recently modified session file.
- * @returns {{ id: string, mtimeMs: number } | null}
- */
+//session works by checking if the last session is inactive, if so, it creates a new session
+//inactive if last message is older than INACTIVE_TIMEOUT
+
+
+const initSession = () => {
+    const latest = findLatestSession();
+    if (latest) {
+        sessionId = latest.id;
+        lastActivityTime = latest.mtimeMs;
+        console.log(`[Session] Found latest session: ${sessionId} (last active: ${new Date(lastActivityTime).toISOString()})`);
+    } else {
+        console.log(`[Session] No existing sessions found.`);
+    }
+};
+
 const findLatestSession = () => {
     ensureDir();
     const files = fs.readdirSync(chatHistoryDir).filter(f => f.endsWith('.jsonl'));
@@ -39,33 +46,9 @@ const findLatestSession = () => {
     };
 };
 
-/**
- * Initializes the session state on module load.
- */
-const initSession = () => {
-    const latest = findLatestSession();
-    if (latest) {
-        sessionId = latest.id;
-        lastActivityTime = latest.mtimeMs;
-        console.log(`[Session] Found latest session: ${sessionId} (last active: ${new Date(lastActivityTime).toISOString()})`);
-    } else {
-        console.log(`[Session] No existing sessions found.`);
-    }
-};
-
-// Auto-initialize
 initSession();
-
-/**
- * Returns today's date string as YYYY-MM-DD.
- */
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
-/**
- * Counts existing session files for a given date to determine next number.
- * @param {string} date - YYYY-MM-DD
- * @returns {number} Next session number (1-based).
- */
 const getNextSessionNumber = (date) => {
     ensureDir();
     const files = fs.readdirSync(chatHistoryDir)
@@ -73,20 +56,12 @@ const getNextSessionNumber = (date) => {
     return files.length + 1;
 };
 
-/**
- * Generates a session ID like "2026-03-02_001".
- * @returns {string}
- */
 const generateSessionId = () => {
     const date = getTodayDate();
     const num = getNextSessionNumber(date);
     return `${date}_${String(num).padStart(3, '0')}`;
 };
 
-/**
- * Starts a new session. Returns the new session ID.
- * @returns {string} The new session ID.
- */
 const startSession = () => {
     sessionId = generateSessionId();
     lastActivityTime = Date.now();
@@ -94,40 +69,20 @@ const startSession = () => {
     return sessionId;
 };
 
-/**
- * Gets the current session ID.
- * @returns {string|null}
- */
 const getSessionId = () => sessionId;
 
-/**
- * Gets the JSONL filename for the current session.
- * @returns {string}
- */
 const getSessionFilename = () => `${sessionId}.jsonl`;
 
-/**
- * Updates the last activity timestamp.
- */
 const touch = () => {
     lastActivityTime = Date.now();
 };
 
-/**
- * Checks if the session has been inactive longer than the timeout.
- * @returns {boolean}
- */
+
 const isInactive = () => {
     if (!lastActivityTime) return true;
     return (Date.now() - lastActivityTime) > INACTIVE_TIMEOUT;
 };
 
-/**
- * Checks inactivity and renews session if needed.
- * Returns { renewed: boolean, previousSessionId: string|null }.
- * @param {Function} onEndSession - Async callback called with previous sessionId before renewal.
- * @returns {Promise<{ renewed: boolean, previousSessionId: string|null }>}
- */
 const checkAndRenewSession = async (onEndSession) => {
     if (!sessionId || isInactive()) {
         const previousSessionId = sessionId;

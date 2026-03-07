@@ -12,14 +12,14 @@ Heavily inspired by the philosophy of **OpenClaw**, `mylia` focuses on core agen
 </div>
 
 ---
-## 🛠️ Announcements
+## Announcements
 
 This is a work in progress project! Currently only openrouter, ollama and Gemini API are supported. (Gemini API is not tested yet!)
 I welcome any feedback and suggestions!
 
 ---
 
-## 🎯 Core Objectives
+## Core Objectives
 
 The framework is built around efficiently achieving exactly five essential capabilities:
 
@@ -32,7 +32,7 @@ The framework is built around efficiently achieving exactly five essential capab
 ---
 
 
-## �🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) installed on your host system.
@@ -78,7 +78,7 @@ node app.js
 
 ---
 
-## 📂 Directory Structure
+## Directory Structure
 
 - **`AgentTemplate/`**: Default templates copied into new workspaces.
 - **`Workspace (default: ~/.mylia/)`**: Agent identity, long-term memory, and session histories.
@@ -88,7 +88,7 @@ node app.js
 
 ---
 
-## � Tools
+## Tools
 
 - **`executeShell`** — Runs shell commands on the host machine and returns the output.
 - **`webFetch`** — Fetches a web page and returns clean text with all HTML, JS, and CSS stripped.
@@ -96,12 +96,12 @@ node app.js
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 **Note:** This project is actively in development and primarily made for personal use. It is still in its early stages. Please exercise caution if adapting it for wider or production environments.
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE).

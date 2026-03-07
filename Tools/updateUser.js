@@ -4,21 +4,12 @@ const { getWorkspacePath } = require('../Utility/workspace');
 
 const userFile = path.join(getWorkspacePath(), 'user.md');
 
-/**
- * Initializes the user file from template if it doesn't exist.
- */
 const initUser = () => {
     if (!fs.existsSync(userFile)) {
         fs.writeFileSync(userFile, '# User\n');
     }
 };
 
-/**
- * Rewrites user.md with the provided content.
- * Backs up the previous version to user.md.bak first.
- * @param {Object} args - { content: string }
- * @returns {Promise<string>}
- */
 const handler = async ({ content }) => {
     initUser();
     try {

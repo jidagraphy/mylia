@@ -12,7 +12,11 @@ const ENV_FILE = path.join(APP_DIR, '.env');
 const command = process.argv[2];
 const arg = process.argv[3];
 
-// ── Helpers ──
+
+
+
+
+// utils
 
 const isRunning = (pid) => {
     try { process.kill(pid, 0); return true; }
@@ -46,14 +50,12 @@ const writeEnvValue = (key, value) => {
     fs.writeFileSync(ENV_FILE, content);
 };
 
-// ── First-Run Setup ──
 
 const ENV_TEMPLATE = path.join(APP_DIR, '.env.template');
 const rl = require('readline');
 const os = require('os');
 
 const ensureSetup = async () => {
-    // 1. Ensure .env exists
     if (!fs.existsSync(ENV_FILE)) {
         if (fs.existsSync(ENV_TEMPLATE)) {
             fs.copyFileSync(ENV_TEMPLATE, ENV_FILE);
@@ -64,10 +66,8 @@ const ensureSetup = async () => {
         }
     }
 
-    // 2. Load env values
     require('dotenv').config({ path: ENV_FILE, override: true });
 
-    // 3. Check workspace path
     if (!process.env.WORKSPACE_PATH?.trim()) {
         const defaultPath = path.join(os.homedir(), '.mylia');
         const answer = await new Promise((resolve) => {
@@ -86,7 +86,7 @@ const ensureSetup = async () => {
         process.env.WORKSPACE_PATH = resolved;
         console.log(`Workspace set to: ${resolved}`);
     }
-    // 4. Validate required environment variables
+    // validation
     const { DISCORD_BOT_TOKEN, AI_PROVIDER, OPENROUTER_API_KEY, GEMINI_API_KEY, OLLAMA_URL } = process.env;
 
     if (!DISCORD_BOT_TOKEN || DISCORD_BOT_TOKEN === 'your_discord_bot_token_here') {
@@ -114,8 +114,14 @@ const ensureSetup = async () => {
     }
 };
 
-// ── Commands ──
 
+
+
+
+
+
+
+// commands
 const start = async () => {
     await ensureSetup();
 
@@ -198,11 +204,10 @@ const configure = () => {
     let editing = false;
     let editBuffer = '';
 
+    let renderedLines = 0;
     const render = () => {
-        // Clear screen and move to top
-        process.stdout.write('\x1b[2J\x1b[H');
-        console.log('  🧚 mylia — Settings\n');
-        console.log('  ↑/↓ navigate  •  Enter to edit  •  Esc/q to exit\n');
+        let output = '  🧚 mylia — Settings\n\n';
+        output += '  ↑/↓ navigate  •  Enter to edit  •  Esc/q to exit\n\n';
 
         for (let i = 0; i < entries.length; i++) {
             const { key, value } = entries[i];
@@ -212,15 +217,24 @@ const configure = () => {
                 : (value || '(empty)');
 
             if (editing && i === selected) {
-                console.log(`${cursor}\x1b[1m${key}\x1b[0m = \x1b[33m${editBuffer}\x1b[0m▌`);
+                output += `${cursor}\x1b[1m${key}\x1b[0m = \x1b[33m${editBuffer}\x1b[0m▌\n`;
             } else {
-                console.log(`${cursor}\x1b[1m${key}\x1b[0m = ${displayValue}`);
+                output += `${cursor}\x1b[1m${key}\x1b[0m = ${displayValue}\n`;
             }
         }
 
         if (editing) {
-            console.log('\n  Type new value and press Enter to save, Esc to cancel');
+            output += '\n  Type new value and press Enter to save, Esc to cancel\n';
         }
+
+        if (renderedLines > 0) {
+            readline.moveCursor(process.stdout, 0, -renderedLines);
+        }
+        readline.cursorTo(process.stdout, 0);
+        process.stdout.write('\x1b[J');
+
+        process.stdout.write(output);
+        renderedLines = output.split('\n').length - 1;
     };
 
     const saveEntry = () => {
@@ -230,7 +244,6 @@ const configure = () => {
         render();
     };
 
-    // Enable raw mode for arrow key input
     process.stdin.setRawMode(true);
     process.stdin.resume();
     process.stdin.setEncoding('utf8');
@@ -274,7 +287,11 @@ const configure = () => {
             render();
         } else if (key === 'q' || key === '\x1b' || key === '\x03') {
             // q, Esc, Ctrl+C — exit
-            process.stdout.write('\x1b[2J\x1b[H');
+            if (renderedLines > 0) {
+                readline.moveCursor(process.stdout, 0, -renderedLines);
+                readline.cursorTo(process.stdout, 0);
+                process.stdout.write('\x1b[J');
+            }
             console.log('Settings saved. ✨');
 
             const pid = getSavedPid();
@@ -289,7 +306,19 @@ const configure = () => {
     });
 };
 
-// ── Router ──
+
+
+
+
+
+
+
+
+
+
+
+
+// routers
 
 const help = () => {
     console.log(`

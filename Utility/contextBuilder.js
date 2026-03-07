@@ -48,9 +48,9 @@ const loadRecentSessionDiaries = (count = 2) => {
 
     const files = fs.readdirSync(memoryDir)
         .filter(f => f.endsWith('.md'))
-        .sort((a, b) => b.localeCompare(a)) // Sort descending (newest first)
+        .sort((a, b) => b.localeCompare(a))
         .slice(0, count)
-        .reverse(); // Reverse to chronological order (oldest first within the slice)
+        .reverse();
 
     if (files.length === 0) return '';
 
@@ -72,12 +72,11 @@ const loadRecentSessionDiaries = (count = 2) => {
 };
 
 /**
- * Builds the full system instruction combining:
- * 1. Agent identity (agent.md)
- * 2. Soul (soul.md)
- * 3. User profile (user.md)
- * 4. Long-term memory (memory.md)
- * 5. Recent session diaries
+ * agent.md
+ * soul.md
+ * user.md
+ * memory.md
+ * recent session diaries
  */
 const buildSystemInstruction = () => {
     const sections = [

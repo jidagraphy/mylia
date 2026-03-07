@@ -1,20 +1,12 @@
-/**
- * Fetches a URL and returns raw text content with HTML, JS, and CSS stripped.
- * Uses native fetch() — no external packages.
- */
+//crude web scraper. 
 
-const MAX_LENGTH = 4000; // Cap output to avoid flooding the AI context
 
-/**
- * Crude HTML-to-text converter using regex.
- * Not perfect, but good enough for most pages.
- */
+const MAX_LENGTH = 4000;
+
 const stripHtml = (html) => {
-    // Step 1: Extract body only (skip head, meta, SEO junk)
     const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
     let content = bodyMatch ? bodyMatch[1] : html;
 
-    // Step 2: Remove site chrome (nav, header, footer, sidebar, menus)
     content = content.replace(/<(nav|header|footer|aside|menu)[^>]*>[\s\S]*?<\/\1>/gi, '');
 
     return content

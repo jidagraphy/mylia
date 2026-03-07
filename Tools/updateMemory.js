@@ -4,21 +4,11 @@ const { getWorkspacePath } = require('../Utility/workspace');
 
 const memoryFile = path.join(getWorkspacePath(), 'memory.md');
 
-/**
- * Initializes the memory file if it doesn't exist.
- */
 const initMemory = () => {
     if (!fs.existsSync(memoryFile)) {
         fs.writeFileSync(memoryFile, '# Agent Memory\n\nThis file contains learned facts about the user.\n\n');
     }
 };
-
-/**
- * Rewrites memory.md with the provided content.
- * Backs up the previous version to memory.md.bak first.
- * @param {Object} args - { content: string }
- * @returns {Promise<string>}
- */
 const handler = async ({ content }) => {
     initMemory();
     try {

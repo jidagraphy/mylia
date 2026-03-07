@@ -3,10 +3,11 @@ const path = require('path');
 
 const ROOT_DIR = path.join(__dirname, '..');
 
-/**
- * Sets up the workspace directory with required folders and template files.
- * Called by app.js on startup — no interactive prompts, just file ops.
- */
+
+// default file buildup logic
+// when called, creates workspace directory, copies files from AgentTemplate if not present.
+// called by app.js on startup.
+
 function setupAgentEnvironment() {
     const { getWorkspacePath } = require('./workspace');
     const workspacePath = getWorkspacePath();
