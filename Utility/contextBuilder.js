@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getWorkspacePath } = require('./workspace');
+const { getInstalledSkills } = require('./skillManager');
 
 const agentMdPath = path.join(getWorkspacePath(), 'agent.md');
 const soulFile = path.join(getWorkspacePath(), 'soul.md');
@@ -71,6 +72,20 @@ const loadRecentSessionDiaries = (count = 2) => {
     return '';
 };
 
+const loadAvailableSkills = () => {
+    const skills = getInstalledSkills();
+    if (skills.length === 0) return '';
+
+    let skillsList = '=== AVAILABLE SKILLS ===\n';
+    skillsList += 'You have access to specialized skill packages. If a task requires it, you MUST use the `viewSkill` tool to read the skill\'s instructions before proceeding.\n\n';
+    
+    for (const skill of skills) {
+        skillsList += `- **${skill.name || skill.folder}**: ${skill.description}\n`;
+    }
+
+    return skillsList.trim();
+};
+
 /**
  * agent.md
  * soul.md
@@ -81,6 +96,7 @@ const loadRecentSessionDiaries = (count = 2) => {
 const buildSystemInstruction = () => {
     const sections = [
         loadAgentIdentity(),
+        loadAvailableSkills(),
         loadSoul(),
         loadUser(),
         loadLongTermMemory(),

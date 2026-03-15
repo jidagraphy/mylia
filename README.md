@@ -21,13 +21,14 @@ I welcome any feedback and suggestions!
 
 ## Core Objectives
 
-The framework is built around efficiently achieving exactly five essential capabilities:
+The framework is built around efficiently achieving a few fundemental capabilities:
 
 1. **Messaging-to-LLM**
 2. **Agent Customisation**
 3. **External Triggers & Heartbeat**
 4. **Persistent Memory**
-5. **Tool Calling**
+5. **Tools**
+6. **Skills**
 
 ---
 
@@ -67,7 +68,10 @@ mylia status             # Show running status, provider, and model
 mylia logs               # Tail live console output
 
 # Configuration
-mylia config                # Interactive settings editor
+mylia config             # Interactive settings editor
+
+# Skills
+mylia install-skill <github-repo-url>  # Install a skill
 ```
 
 Or run directly without the CLI:
@@ -81,10 +85,32 @@ node app.js
 ## Directory Structure
 
 - **`AgentTemplate/`**: Default templates copied into new workspaces.
-- **`Workspace (default: ~/.mylia/)`**: Agent identity, long-term memory, and session histories.
 - **`Tools/`**: Modular tool files that the LLM can invoke.
 - **`Utility/`**: Helper scripts for session management, memory, and workspace setup.
 - **`Clients/`**: Provider wrappers (e.g., Gemini API, Ollama, OpenRouter, Discord).
+
+---
+
+## Skills
+
+`mylia` supports installing [ClawHub](https://clawhub.ai)-style markdown skills. 
+
+You can install skills directly from any GitHub repository:
+
+```bash
+mylia install-skill <github-repo-url>
+```
+
+Currently there are no default skills. You can make your own skills with the clawhub skills.md convention :
+```
+---
+name: <skill-name>
+description: <skill-description>
+---
+<skill-content>
+```
+
+DO NOT INSTALL UNTRUSTED SKILLS - i will NOT be responsible for any damages.
 
 ---
 

@@ -318,6 +318,51 @@ const configure = () => {
 
 
 
+const installSkill = async (repoUrl) => {
+    await ensureSetup();
+    if (!repoUrl) {
+        console.error('Usage: mylia install-skill <github-repo-url>');
+        process.exit(1);
+    }
+
+    const { getWorkspacePath } = require('./Utility/workspace');
+    const skillsDir = path.join(getWorkspacePath(), 'Skills');
+    
+    if (!fs.existsSync(skillsDir)) {
+        fs.mkdirSync(skillsDir, { recursive: true });
+    }
+
+    // Extract repo name from URL to use as folder name
+    const repoMatch = repoUrl.match(/\/([^/]+?)(?:\.git)?$/);
+    if (!repoMatch) {
+        console.error('Invalid repository URL. Please provide a valid GitHub/Git URL.');
+        process.exit(1);
+    }
+    
+    const skillName = repoMatch[1];
+    const targetDir = path.join(skillsDir, skillName);
+
+    if (fs.existsSync(targetDir)) {
+        console.error(`Skill '${skillName}' already exists in ${targetDir}`);
+        console.log('To update, you must manually delete the folder or run git pull inside it.');
+        process.exit(1);
+    }
+
+    console.log(`Installing skill '${skillName}' from ${repoUrl}...`);
+    try {
+        execSync(`git clone ${repoUrl} ${targetDir}`, { stdio: 'inherit' });
+        console.log(`\n✨ Successfully installed skill: ${skillName}`);
+        
+        // Verify if SKILL.md exists
+        if (!fs.existsSync(path.join(targetDir, 'SKILL.md'))) {
+            console.warn(`\n⚠️ Warning: No SKILL.md found in ${skillName}. The agent may not be able to read this skill's instructions.`);
+        }
+    } catch (error) {
+        console.error(`\n❌ Failed to install skill.`);
+        process.exit(1);
+    }
+};
+
 // routers
 
 const help = () => {
@@ -330,6 +375,7 @@ const help = () => {
     mylia status             Show running status, provider, and model
     mylia logs               Tail the live console output
     mylia config             Interactive settings editor
+    mylia install-skill <url> Install a ClawHub skill from a Git repository
 `);
 };
 
@@ -341,5 +387,7 @@ switch (command) {
     case 'config':
     case 'configure':
     case 'settings': configure(); break;
+    case 'install-skill':
+    case 'install': installSkill(arg); break;
     default: help(); break;
 }

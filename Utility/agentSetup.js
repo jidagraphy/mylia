@@ -17,7 +17,7 @@ function setupAgentEnvironment() {
         fs.mkdirSync(workspacePath, { recursive: true });
     }
 
-    const directoriesToEnsure = ['Sessions', 'Memory'];
+    const directoriesToEnsure = ['Sessions', 'Memory', 'Skills'];
     for (const dir of directoriesToEnsure) {
         const targetPath = path.join(workspacePath, dir);
         if (!fs.existsSync(targetPath)) {

@@ -62,17 +62,23 @@ const chat = async (model, history, systemInstruction, tools, currentMessage) =>
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let buffer = '';
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
             const chunkString = decoder.decode(value, { stream: true });
-            const lines = chunkString.split('\n').filter(line => line.trim() !== '');
+            buffer += chunkString;
+            
+            const lines = buffer.split('\n');
+            // Keep the last partial line in the buffer
+            buffer = lines.pop() || '';
 
             for (let line of lines) {
-                if (!line.startsWith('data: ')) continue;
-                if (line === 'data: [DONE]') break;
+                line = line.trim();
+                if (!line || !line.startsWith('data: ')) continue;
+                if (line === 'data: [DONE]') continue;
 
                 try {
                     const chunk = JSON.parse(line.substring(6));
@@ -94,7 +100,9 @@ const chat = async (model, history, systemInstruction, tools, currentMessage) =>
                         }
                     }
                 } catch (e) {
-                    // Ignore incomplete JSON chunks from SSE boundaries
+                    // If JSON parse fails, it might be an incomplete chunk that got split exactly at a newline.
+                    // Put it back in the buffer to prepend to the next chunk.
+                    buffer = line + '\n' + buffer;
                 }
             }
         }
