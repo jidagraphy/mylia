@@ -84,7 +84,7 @@ node app.js
 
 ## Directory Structure
 
-- **`AgentTemplate/`**: Default templates copied into new workspaces.
+- **`WorkspaceTemplate/`**: Default templates copied into new workspaces.
 - **`Tools/`**: Modular tool files that the LLM can invoke.
 - **`Utility/`**: Helper scripts for session management, memory, and workspace setup.
 - **`Clients/`**: Provider wrappers (e.g., Gemini API, Ollama, OpenRouter, Discord).

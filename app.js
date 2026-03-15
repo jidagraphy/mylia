@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const { setupAgentEnvironment } = require('./Utility/agentSetup');
+const { setupWorkspaceEnvironment } = require('./Utility/workspaceSetup');
 const { Client, GatewayIntentBits, Partials, Events } = require('discord.js');
 const { chat } = require('./Clients/provider');
 const { appendToHistory, getSessionHistoryByTokens } = require('./Utility/historyStore');
@@ -9,7 +9,7 @@ const { generateSessionDiary } = require('./Tools/compactHistory');
 const { startSession, endSession, checkAndRenewSession } = require('./Utility/sessionManager');
 const { availableTools, toolDeclarations } = require('./Tools');
 
-setupAgentEnvironment();
+setupWorkspaceEnvironment();
 
 const client = new Client({
     intents: [

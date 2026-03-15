@@ -325,7 +325,7 @@ const installSkill = async (repoUrl) => {
         process.exit(1);
     }
 
-    const { getWorkspacePath } = require('./Utility/workspace');
+    const { getWorkspacePath } = require('./Utility/workspaceSetup');
     const skillsDir = path.join(getWorkspacePath(), 'Skills');
     
     if (!fs.existsSync(skillsDir)) {
