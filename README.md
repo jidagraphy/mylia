@@ -84,10 +84,22 @@ node app.js
 
 ## Directory Structure
 
-- **`WorkspaceTemplate/`**: Default templates copied into new workspaces.
+- **`WorkspaceTemplate/`**: Default templates to be copied to the workspace on first run.
 - **`Tools/`**: Modular tool files that the LLM can invoke.
 - **`Utility/`**: Helper scripts for session management, memory, and workspace setup.
 - **`Clients/`**: Provider wrappers (e.g., Gemini API, Ollama, OpenRouter, Discord).
+
+---
+
+## Workspace Structure (default: `~/.mylia/`)
+
+- **`agent.md`**: Core system prompt framing the AI's boundaries.
+- **`memory.md`**: Persistent long term memory facts.
+- **`soul.md`**: Core personality and tone definition.
+- **`user.md`**: Profile data concerning the primary user.
+- **`Memory/`**: Stores auto-generated session diaries summarizing past conversations.
+- **`Sessions/`**: Active connection states.
+- **`Skills/`**: Downloaded skill repositories containing custom instructions.
 
 ---
 
