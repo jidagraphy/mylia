@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getSessionFilename } = require('./sessionManager');
-const { getWorkspacePath } = require('./workspace');
+const { getWorkspacePath } = require('./workspaceSetup');
 
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
 

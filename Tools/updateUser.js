@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getWorkspacePath } = require('../Utility/workspace');
+const { getWorkspacePath } = require('../Utility/workspaceSetup');
 
 const userFile = path.join(getWorkspacePath(), 'user.md');
 

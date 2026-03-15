@@ -4,7 +4,7 @@ const { complete } = require('../Clients/provider');
 const { getFullHistory } = require('../Utility/historyStore');
 const { getSessionId, startSession } = require('../Utility/sessionManager');
 
-const { getWorkspacePath } = require('../Utility/workspace');
+const { getWorkspacePath } = require('../Utility/workspaceSetup');
 
 const memoryDir = path.join(getWorkspacePath(), 'Memory');
 

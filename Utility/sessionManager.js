@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { getWorkspacePath } = require('./workspace');
+const { getWorkspacePath } = require('./workspaceSetup');
 
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
 const INACTIVE_TIMEOUT = 60 * 60 * 1000; // 1 hour

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getWorkspacePath } = require('./workspace');
+const { getWorkspacePath } = require('./workspaceSetup');
 
 const getSkillsDir = () => path.join(getWorkspacePath(), 'Skills');
 

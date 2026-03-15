@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getWorkspacePath } = require('./workspace');
+const { getWorkspacePath } = require('./workspaceSetup');
 const { getInstalledSkills } = require('./skillManager');
 
 const agentMdPath = path.join(getWorkspacePath(), 'agent.md');

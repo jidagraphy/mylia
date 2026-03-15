@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { getWorkspacePath } = require('../Utility/workspace');
+const { getWorkspacePath } = require('../Utility/workspaceSetup');
 
 const soulFile = path.join(getWorkspacePath(), 'soul.md');
 
