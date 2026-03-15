@@ -1,6 +1,6 @@
 {
   "name": "@jidagraphy/mylia",
-  "version": "2026.3.16",
+  "version": "2026.3.16-1",
   "description": "My Little AI - tiny AI agent",
   "url": "https://github.com/jidagraphy/mylia.git",
   "main": "app.js",
