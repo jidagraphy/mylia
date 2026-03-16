@@ -1,7 +1,6 @@
 //crude web scraper. 
 
-
-const MAX_LENGTH = 4000;
+const MAX_LENGTH = 5000;
 
 const stripHtml = (html) => {
     const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
