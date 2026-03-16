@@ -7,7 +7,8 @@ const path = require('path');
 const APP_DIR = path.resolve(__dirname);
 const PID_FILE = path.join(require('os').homedir(), '.mylia.pid');
 const LOG_FILE = path.join(require('os').homedir(), '.mylia.log');
-const ENV_FILE = path.join(APP_DIR, '.env');
+const { getConfig, updateConfig } = require('./Utility/config');
+const { setupWorkspaceEnvironment } = require('./Utility/workspaceSetup');
 
 const command = process.argv[2];
 const arg = process.argv[3];
@@ -29,89 +30,35 @@ const getSavedPid = () => {
     return isNaN(pid) ? null : pid;
 };
 
-const readEnvValue = (key) => {
-    if (!fs.existsSync(ENV_FILE)) return null;
-    const match = fs.readFileSync(ENV_FILE, 'utf8').match(new RegExp(`^${key}=(.*)$`, 'm'));
-    return match ? match[1].trim() : null;
-};
-
-const writeEnvValue = (key, value) => {
-    if (!fs.existsSync(ENV_FILE)) {
-        fs.writeFileSync(ENV_FILE, `${key}=${value}\n`);
-        return;
-    }
-    let content = fs.readFileSync(ENV_FILE, 'utf8');
-    const regex = new RegExp(`^${key}=.*$`, 'm');
-    if (regex.test(content)) {
-        content = content.replace(regex, `${key}=${value}`);
-    } else {
-        content += `\n${key}=${value}`;
-    }
-    fs.writeFileSync(ENV_FILE, content);
-};
 
 
-const ENV_TEMPLATE = path.join(APP_DIR, '.env.template');
 const rl = require('readline');
 const os = require('os');
 
 const ensureSetup = async () => {
-    if (!fs.existsSync(ENV_FILE)) {
-        if (fs.existsSync(ENV_TEMPLATE)) {
-            fs.copyFileSync(ENV_TEMPLATE, ENV_FILE);
-            console.log('Created .env from .env.template');
-        } else {
-            console.error('No .env or .env.template found. Cannot continue.');
-            process.exit(1);
-        }
+    setupWorkspaceEnvironment();
+
+    const config = getConfig();
+    if (!config) {
+        console.error('❌ Error: Could not load config.json.');
+        process.exit(1);
     }
 
-    require('dotenv').config({ path: ENV_FILE, override: true });
+    const { DISCORD_BOT_TOKEN, AI_PROVIDER, OPENROUTER_API_KEY, GEMINI_API_KEY, OLLAMA_URL } = config;
 
-    if (!process.env.WORKSPACE_PATH?.trim()) {
-        const defaultPath = path.join(os.homedir(), '.mylia');
-        const answer = await new Promise((resolve) => {
-            const iface = rl.createInterface({ input: process.stdin, output: process.stdout });
-            iface.question(`Workspace path (default: ${defaultPath}): `, (ans) => {
-                iface.close();
-                resolve(ans.trim() || defaultPath);
-            });
-        });
-
-        const resolved = answer.startsWith('~')
-            ? path.resolve(os.homedir(), answer.slice(2))
-            : path.resolve(answer);
-
-        writeEnvValue('WORKSPACE_PATH', resolved);
-        process.env.WORKSPACE_PATH = resolved;
-        console.log(`Workspace set to: ${resolved}`);
-    }
-    // validation
-    const { DISCORD_BOT_TOKEN, AI_PROVIDER, OPENROUTER_API_KEY, GEMINI_API_KEY, OLLAMA_URL } = process.env;
+    let valid = true;
 
     if (!DISCORD_BOT_TOKEN || DISCORD_BOT_TOKEN === 'your_discord_bot_token_here') {
-        console.error('❌ Error: DISCORD_BOT_TOKEN is missing or invalid.');
-        console.log('💡 Run `mylia config` or edit your .env file to set it.');
-        process.exit(1);
+        valid = false;
+    } else if (AI_PROVIDER === 'openrouter' && (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key_here')) {
+        valid = false;
+    } else if (AI_PROVIDER === 'gemini' && (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here')) {
+        valid = false;
+    } else if (AI_PROVIDER === 'ollama' && !OLLAMA_URL) {
+        valid = false;
     }
 
-    if (AI_PROVIDER === 'openrouter' && (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key_here')) {
-        console.error('❌ Error: OPENROUTER_API_KEY is missing for the "openrouter" provider.');
-        console.log('💡 Run `mylia config` to set it, or change your AI_PROVIDER.');
-        process.exit(1);
-    }
-
-    if (AI_PROVIDER === 'gemini' && (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here')) {
-        console.error('❌ Error: GEMINI_API_KEY is missing for the "gemini" provider.');
-        console.log('💡 Run `mylia config` to set it, or change your AI_PROVIDER.');
-        process.exit(1);
-    }
-
-    if (AI_PROVIDER === 'ollama' && !OLLAMA_URL) {
-        console.error('❌ Error: OLLAMA_URL is missing for the "ollama" provider.');
-        console.log('💡 Run `mylia config` to set it (default: http://127.0.0.1:11434).');
-        process.exit(1);
-    }
+    return valid;
 };
 
 
@@ -123,7 +70,12 @@ const ensureSetup = async () => {
 
 // commands
 const start = async () => {
-    await ensureSetup();
+    const isValid = await ensureSetup();
+    if (!isValid) {
+        console.log('✨ Fresh installation or missing configuration detected! Routing to setup guide...\n');
+        configure();
+        return;
+    }
 
     const existing = getSavedPid();
     if (existing && isRunning(existing)) {
@@ -162,8 +114,9 @@ const stop = () => {
 const status = () => {
     const pid = getSavedPid();
     const running = pid && isRunning(pid);
-    const provider = readEnvValue('AI_PROVIDER') || 'not set';
-    const model = readEnvValue('AI_MODEL') || 'not set';
+    const config = getConfig() || {};
+    const provider = config.AI_PROVIDER || 'not set';
+    const model = config.AI_MODEL || 'not set';
 
     console.log(`Status:   ${running ? `\x1b[32mrunning\x1b[0m (PID: ${pid})` : '\x1b[31mstopped\x1b[0m'}`);
     console.log(`Provider: ${provider}`);
@@ -184,22 +137,9 @@ const logs = () => {
 const readline = require('readline');
 
 const configure = () => {
-    if (!fs.existsSync(ENV_FILE)) {
-        console.log('No .env file found. Create one first.');
-        return;
-    }
-
-    const loadEntries = () => {
-        return fs.readFileSync(ENV_FILE, 'utf8')
-            .split('\n')
-            .filter(line => line.includes('=') && !line.startsWith('#'))
-            .map(line => {
-                const eqIdx = line.indexOf('=');
-                return { key: line.slice(0, eqIdx), value: line.slice(eqIdx + 1) };
-            });
-    };
-
-    let entries = loadEntries();
+    setupWorkspaceEnvironment();
+    let configObj = getConfig() || {};
+    let entries = Object.entries(configObj).map(([key, value]) => ({ key, value }));
     let selected = 0;
     let editing = false;
     let editBuffer = '';
@@ -239,7 +179,7 @@ const configure = () => {
 
     const saveEntry = () => {
         entries[selected].value = editBuffer;
-        writeEnvValue(entries[selected].key, editBuffer);
+        updateConfig({ [entries[selected].key]: editBuffer });
         editing = false;
         render();
     };
@@ -327,7 +267,7 @@ const installSkill = async (repoUrl) => {
 
     const { getWorkspacePath } = require('./Utility/workspaceSetup');
     const skillsDir = path.join(getWorkspacePath(), 'Skills');
-    
+
     if (!fs.existsSync(skillsDir)) {
         fs.mkdirSync(skillsDir, { recursive: true });
     }
@@ -338,7 +278,7 @@ const installSkill = async (repoUrl) => {
         console.error('Invalid repository URL. Please provide a valid GitHub/Git URL.');
         process.exit(1);
     }
-    
+
     const skillName = repoMatch[1];
     const targetDir = path.join(skillsDir, skillName);
 
@@ -352,7 +292,7 @@ const installSkill = async (repoUrl) => {
     try {
         execSync(`git clone ${repoUrl} ${targetDir}`, { stdio: 'inherit' });
         console.log(`\n✨ Successfully installed skill: ${skillName}`);
-        
+
         // Verify if SKILL.md exists
         if (!fs.existsSync(path.join(targetDir, 'SKILL.md'))) {
             console.warn(`\n⚠️ Warning: No SKILL.md found in ${skillName}. The agent may not be able to read this skill's instructions.`);

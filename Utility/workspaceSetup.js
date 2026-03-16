@@ -4,16 +4,10 @@ const os = require('os');
 
 const ROOT_DIR = path.join(__dirname, '..');
 
-const getWorkspacePath = () => {
-    const ws = process.env.WORKSPACE_PATH;
-    if (!ws || !ws.trim()) {
-        console.error('[mylia] WORKSPACE_PATH not set. Run the app to complete setup.');
-        process.exit(1);
-    }
+const { WORKSPACE_PATH } = require('./config');
 
-    const resolved = ws.startsWith('~')
-        ? path.resolve(os.homedir(), ws.slice(2))
-        : path.resolve(ws);
+const getWorkspacePath = () => {
+    const resolved = WORKSPACE_PATH;
 
     if (!fs.existsSync(resolved)) {
         fs.mkdirSync(resolved, { recursive: true });
@@ -49,7 +43,7 @@ function setupWorkspaceEnvironment() {
         }
     }
 
-    const filesToCopy = ['agent.md', 'memory.md', 'soul.md', 'user.md'];
+    const filesToCopy = ['agent.md', 'memory.md', 'soul.md', 'user.md', 'config.json'];
     for (const file of filesToCopy) {
         const sourcePath = path.join(templateDir, file);
         const targetPath = path.join(workspacePath, file);

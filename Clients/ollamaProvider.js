@@ -1,4 +1,5 @@
-const OLLAMA_HOST = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
+const { getConfig } = require('../Utility/config');
+const OLLAMA_HOST = getConfig()?.OLLAMA_URL || 'http://127.0.0.1:11434';
 
 
 /**

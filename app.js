@@ -1,4 +1,4 @@
-require('dotenv').config();
+const { getConfig } = require('./Utility/config');
 
 const { setupWorkspaceEnvironment } = require('./Utility/workspaceSetup');
 const { Client, GatewayIntentBits, Partials, Events } = require('discord.js');
@@ -157,4 +157,4 @@ const shutdown = async () => {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-client.login(process.env.DISCORD_BOT_TOKEN);
+client.login(getConfig().DISCORD_BOT_TOKEN);

@@ -1,6 +1,7 @@
-
-const provider = process.env.AI_PROVIDER;
-const model = process.env.AI_MODEL;
+const { getConfig } = require('../Utility/config');
+const config = getConfig() || {};
+const provider = config.AI_PROVIDER;
+const model = config.AI_MODEL;
 
 const getActiveProvider = () => {
 

@@ -1,4 +1,5 @@
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const { getConfig } = require('../Utility/config');
+const OPENROUTER_API_KEY = getConfig()?.OPENROUTER_API_KEY;
 
 /**
  * Chat with tool support via OpenRouter REST API (OpenAI format).
