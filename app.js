@@ -58,7 +58,7 @@ client.on(Events.MessageCreate, async (message) => {
 
         console.log(`Sending to AI: "${userPrompt}"`);
 
-        let response = await chat(history, systemInstruction, toolDeclarations, currentMessage);
+        let response = await chat(systemInstruction, toolDeclarations, history, currentMessage);
         console.log(`[AI] ${response.content || '(tool calls)'}`);
         appendToHistory(currentMessage);
 
@@ -115,7 +115,7 @@ client.on(Events.MessageCreate, async (message) => {
             const lastMsg = context.pop();
 
             console.log('[Follow-up] Sending follow-up chat with tool results in context...');
-            response = await chat(context, systemInstruction, toolDeclarations, lastMsg);
+            response = await chat(systemInstruction, toolDeclarations, context, lastMsg);
             // Push it back so history stays complete - y tho
             context.push(lastMsg);
             console.log('[Follow-up] Response:', JSON.stringify(response));

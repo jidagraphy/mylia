@@ -43,7 +43,7 @@ const toGeminiTools = (openAiTools) => {
 /**
  * Chat with tool support via Gemini REST API.
  */
-const chat = async (model, history, systemInstruction, tools, currentMessage) => {
+const chat = async (model, systemInstruction, tools, history, currentMessage) => {
     const { getConfig } = require('../Utility/config');
     const apiKey = getConfig()?.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY not set");

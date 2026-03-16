@@ -5,7 +5,7 @@ const OLLAMA_HOST = getConfig()?.OLLAMA_URL || 'http://127.0.0.1:11434';
 /**
  * Chat with tool support via local Ollama REST API.
  */
-const chat = async (model, history, systemInstruction, tools, currentMessage) => {
+const chat = async (model, systemInstruction, tools, history, currentMessage) => {
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
             // Convert tool results to user messages for Gemini compatibility
