@@ -8,7 +8,7 @@ const getActiveProvider = () => {
     try {
         return require(`./${provider}Provider`);
     } catch (error) {
-        throw new Error(`Configured AI_PROVIDER '${providerName}' not found or failed to load.`);
+        throw new Error(`Configured AI_PROVIDER '${provider}' not found or failed to load.`);
     }
 };
 

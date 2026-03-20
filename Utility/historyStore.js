@@ -38,7 +38,7 @@ const getSessionHistory = () => {
 
 const estimateTokens = (text) => {
     if (!text) return 0;
-    return Math.ceil(text.length / 2);
+    return Math.ceil(text.length / 4);
 };
 
 const getSessionHistoryByTokens = (maxTokens = 4000) => {

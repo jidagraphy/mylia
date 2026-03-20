@@ -4,7 +4,7 @@ const MAX_LENGTH = 5000;
 
 const handler = async ({ command }) => {
     return new Promise((resolve) => {
-        exec(command, (error, stdout, stderr) => {
+        exec(command, { timeout: 30000 }, (error, stdout, stderr) => {
             let result = '';
             if (error) {
                 result = `Error: ${error.message}\nStderr: ${stderr}`;

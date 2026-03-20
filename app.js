@@ -64,7 +64,7 @@ client.on(Events.MessageCreate, async (message) => {
 
         const context = [...history, currentMessage];
         let iterations = 0;
-        const maxIterations = 3;
+        const maxIterations = 5;
 
         // agentic loop here
         while (response.tool_calls?.length > 0 && iterations < maxIterations) {
