@@ -28,7 +28,7 @@ const generateSessionDiary = async (sessionId) => {
         .map(m => `[${m.timestamp || ''}] [${m.role}]: ${m.content}`)
         .join('\n');
 
-    const prompt = `Below is the transcript from session ${sessionId}:\n${historyText}\n\nWrite a brief session log summarizing this chat with Jida.
+    const prompt = `Below is the transcript from session ${sessionId}:\n${historyText}\n\nWrite a brief session log summarizing this chat.
 
     Constraints:
     - Keep it short to about 3 paragraphs max.
