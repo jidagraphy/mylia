@@ -62,7 +62,7 @@ const declaration = {
     type: "function",
     function: {
         name: "compactHistory",
-        description: "Compacts today's conversation into a daily summary (Memory/YYYY-MM-DD.md). Use when asked for compaction or when conversation is long.",
+        description: "Compacts the current session into a summary (Memory/YYYY-MM-DD_NNN.md). Use when asked for compaction or when conversation is long.",
         parameters: {
             type: "object",
             properties: {},

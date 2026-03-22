@@ -59,15 +59,18 @@ const chat = async (model, systemInstruction, tools, history, currentMessage) =>
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let buffer = '';
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            const chunkString = decoder.decode(value, { stream: true });
-            const lines = chunkString.split('\n').filter(line => line.trim() !== '');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
             for (const line of lines) {
+                if (!line.trim()) continue;
                 try {
                     const chunk = JSON.parse(line);
                     if (chunk.message?.content) {
@@ -75,13 +78,14 @@ const chat = async (model, systemInstruction, tools, history, currentMessage) =>
                     }
 
                     if (chunk.message?.tool_calls?.length > 0) {
-                        result.tool_calls = chunk.message.tool_calls.map(tc => ({
-                            function: { name: tc.function.name, arguments: tc.function.arguments }
-                        }));
+                        for (const tc of chunk.message.tool_calls) {
+                            result.tool_calls.push({
+                                function: { name: tc.function.name, arguments: tc.function.arguments }
+                            });
+                        }
                     }
                 } catch (e) {
-                    // Ignore incomplete JSON chunks, they will be handled by stream buffering
-                    console.error('[OllamaProvider] Failed to parse stream chunk:', e.message);
+                    buffer = line + '\n' + buffer;
                 }
             }
         }
