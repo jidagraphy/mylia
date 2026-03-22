@@ -128,9 +128,12 @@ DO NOT INSTALL UNTRUSTED SKILLS - i will NOT be responsible for any damages.
 
 ## Tools
 
-- **`executeShell`** — Runs shell commands on the host machine and returns the output.
+- **`executeShell`** — Runs shell commands on the host machine and returns the output (30s timeout).
 - **`webFetch`** — Fetches a web page and returns clean text with all HTML, JS, and CSS stripped.
-- **`updateMemory` / `updateSoul` / `updateUser`** — Rewrites the agent's long-term memory, personality, or user profile files.
+- **`readFile`** — Reads any file in the workspace. Used to inspect memory, soul, user profile, session diaries, etc.
+- **`editFile`** — Edits workspace files with three modes: `replace` (find-and-replace exact text), `append` (add to end), or `rewrite` (full replacement). Always backs up before writing.
+- **`viewSkill`** — Reads the instructions for an installed skill.
+- **`compactHistory`** — Summarizes the current session into a diary file.
 
 ---
 

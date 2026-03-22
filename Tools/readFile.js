@@ -1,0 +1,40 @@
+const fs = require('fs');
+const path = require('path');
+const { getWorkspacePath } = require('../Utility/workspaceSetup');
+
+const handler = async ({ filePath }) => {
+    // Resolve relative paths against workspace, absolute paths used as-is
+    const resolved = path.isAbsolute(filePath) ? filePath : path.resolve(getWorkspacePath(), filePath);
+
+    if (!fs.existsSync(resolved)) {
+        return `Error: File not found: ${filePath}`;
+    }
+
+    try {
+        const content = fs.readFileSync(resolved, 'utf8');
+        if (!content.trim()) return `File "${filePath}" is empty.`;
+        return content;
+    } catch (error) {
+        return `Error reading file: ${error.message}`;
+    }
+};
+
+const declaration = {
+    type: "function",
+    function: {
+        name: "readFile",
+        description: "Reads the content of a file. Use this to check the current content of memory.md, soul.md, user.md, or any other file before making changes. Relative paths resolve from the workspace root.",
+        parameters: {
+            type: "object",
+            properties: {
+                filePath: {
+                    type: "string",
+                    description: "File path. Relative paths resolve from workspace root (e.g., 'memory.md'). Absolute paths are used as-is (e.g., '/Users/jida/file.txt')."
+                }
+            },
+            required: ["filePath"]
+        }
+    }
+};
+
+module.exports = { handler, declaration };
