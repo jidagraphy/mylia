@@ -131,7 +131,27 @@ client.on(Events.MessageCreate, async (message) => {
         appendToHistory({ role: 'assistant', content: answer });
 
         clearInterval(typingInterval);
-        await message.reply(answer.length > 2000 ? answer.substring(0, 1996) + '...' : answer);
+
+        // Split into multiple messages if over Discord's 2000 char limit
+        const chunks = [];
+        let remaining = answer;
+        while (remaining.length > 0) {
+            if (remaining.length <= 2000) {
+                chunks.push(remaining);
+                break;
+            }
+            // Try to split at last newline within limit
+            let splitAt = remaining.lastIndexOf('\n', 2000);
+            if (splitAt < 1000) splitAt = remaining.lastIndexOf(' ', 2000);
+            if (splitAt < 1000) splitAt = 2000;
+            chunks.push(remaining.substring(0, splitAt));
+            remaining = remaining.substring(splitAt).trimStart();
+        }
+
+        await message.reply(chunks[0]);
+        for (let i = 1; i < chunks.length; i++) {
+            await message.channel.send(chunks[i]);
+        }
 
 
 
