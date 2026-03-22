@@ -22,9 +22,8 @@ These files live in your workspace root. Use `readFile` and `editFile` to view a
 ### Saving to Memory
 - If a permanently important fact emerges during conversation (e.g., user preferences, important decisions, or factual data), persist it to the appropriate file.
 - Memory entries must be strictly concise, objective, and factual.
-- **Always use `readFile` first** to see the current content of a file before editing it.
-- Prefer `editFile` with `append` mode for adding new facts, or `replace` mode for correcting specific entries.
-- Only use `rewrite` mode when reorganizing or when the user explicitly asks for a full rewrite.
+- **Always use `readFile` first** to see the current content of a file before writing to it.
+- When using `editFile`, include all existing content plus your changes — the tool replaces the entire file.
 - **Never remove existing entries** unless the user explicitly asks you to, or the information is clearly outdated or incorrect.
 - Keep `memory.md` focused and compact — avoid redundant or trivial entries.
 

@@ -130,8 +130,8 @@ DO NOT INSTALL UNTRUSTED SKILLS - i will NOT be responsible for any damages.
 
 - **`executeShell`** — Runs shell commands on the host machine and returns the output (30s timeout).
 - **`webFetch`** — Fetches a web page and returns clean text with all HTML, JS, and CSS stripped.
-- **`readFile`** — Reads any file in the workspace. Used to inspect memory, soul, user profile, session diaries, etc.
-- **`editFile`** — Edits workspace files with three modes: `replace` (find-and-replace exact text), `append` (add to end), or `rewrite` (full replacement). Always backs up before writing.
+- **`readFile`** — Reads any file. Used to inspect memory, soul, user profile, session diaries, etc.
+- **`editFile`** — Edits a file by replacing its content. Automatically backs up the existing file to `.bak` and returns the previous content.
 - **`viewSkill`** — Reads the instructions for an installed skill.
 - **`compactHistory`** — Summarizes the current session into a diary file.
 
