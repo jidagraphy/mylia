@@ -41,71 +41,86 @@ const estimateTokens = (text) => {
     return Math.ceil(text.length / 4);
 };
 
+/**
+ * Groups messages into atomic units. Tool-call sequences
+ * (assistant w/ tool_calls + its tool results + follow-up assistant)
+ * are grouped together so they're never split.
+ */
+const groupMessages = (messages) => {
+    const groups = [];
+    let i = 0;
+
+    while (i < messages.length) {
+        const msg = messages[i];
+
+        if (msg.role === 'assistant' && msg.tool_calls?.length > 0) {
+            const group = [msg];
+            const expectedTools = msg.tool_calls.length;
+            let j = 0;
+
+            // grab the matching tool results
+            while (j < expectedTools && i + 1 + j < messages.length) {
+                const next = messages[i + 1 + j];
+                if (next.role !== 'tool') break;
+                group.push(next);
+                j++;
+            }
+
+            // if we didn't get all tool results, skip this incomplete sequence
+            if (j < expectedTools) {
+                i += 1 + j;
+                continue;
+            }
+
+            i += 1 + j;
+
+            // grab the follow-up assistant response if it's next
+            if (i < messages.length && messages[i].role === 'assistant' && !messages[i].tool_calls) {
+                group.push(messages[i]);
+                i++;
+            }
+
+            groups.push(group);
+        } else if (msg.role === 'tool') {
+            // orphan tool message, skip
+            i++;
+        } else {
+            groups.push([msg]);
+            i++;
+        }
+    }
+
+    return groups;
+};
+
+const estimateGroupTokens = (group) => {
+    let tokens = 0;
+    for (const msg of group) {
+        const contentStr = msg.content || '';
+        const toolStr = msg.tool_calls ? JSON.stringify(msg.tool_calls) : '';
+        tokens += estimateTokens(contentStr) + estimateTokens(toolStr) + 10;
+    }
+    return tokens;
+};
+
 const getSessionHistoryByTokens = (maxTokens = 4000) => {
     const fullHistory = getSessionHistory();
     if (fullHistory.length === 0) return [];
 
+    const groups = groupMessages(fullHistory);
     let currentTokens = 0;
-    const windowedHistory = [];
+    const selectedGroups = [];
 
-    for (let i = fullHistory.length - 1; i >= 0; i--) {
-        const msg = fullHistory[i];
+    for (let i = groups.length - 1; i >= 0; i--) {
+        const groupTokens = estimateGroupTokens(groups[i]);
 
-        const contentStr = msg.content || '';
-        const toolStr = msg.tool_calls ? JSON.stringify(msg.tool_calls) : '';
-        const msgTokens = estimateTokens(contentStr) + estimateTokens(toolStr) + 10;
+        if (currentTokens + groupTokens > maxTokens) break;
 
-        currentTokens += msgTokens;
-        windowedHistory.unshift(msg);
-
-        if (currentTokens > maxTokens && windowedHistory.length > 0) {
-            const firstMsg = windowedHistory[0];
-            const isSafeBoundary = firstMsg.role === 'user' || (firstMsg.role === 'assistant' && !firstMsg.tool_calls);
-            if (isSafeBoundary) {
-                break;
-            }
-        }
+        currentTokens += groupTokens;
+        selectedGroups.unshift(groups[i]);
     }
 
-    return sanitizeHistory(windowedHistory);
-};
-
-/**
- * Removes incomplete tool-call sequences from anywhere in the history.
- */
-const sanitizeHistory = (messages) => {
-    const clean = [];
-
-    for (let i = 0; i < messages.length; i++) {
-        const msg = messages[i];
-
-        if (msg.role === 'assistant' && msg.tool_calls?.length > 0) {
-            const expectedCount = msg.tool_calls.length;
-            let hasAllResponses = true;
-
-            for (let j = 0; j < expectedCount; j++) {
-                const next = messages[i + 1 + j];
-                if (!next || next.role !== 'tool') {
-                    hasAllResponses = false;
-                    break;
-                }
-            }
-
-            if (hasAllResponses) {
-                clean.push(msg);
-                for (let j = 0; j < expectedCount; j++) {
-                    clean.push(messages[i + 1 + j]);
-                }
-                i += expectedCount;
-            }
-        } else if (msg.role === 'tool') {
-            continue;
-        } else {
-            clean.push(msg);
-        }
-    }
-
-    return clean;
+    return selectedGroups.flat();
 };
 
 const getFullHistory = (sessionId) => {
