@@ -11,7 +11,14 @@ const handler = async ({ filePath }) => {
     }
 
     try {
-        const content = fs.readFileSync(resolved, 'utf8');
+        const buffer = fs.readFileSync(resolved);
+
+        // Detect binary files by checking for null bytes
+        if (buffer.includes(0x00)) {
+            return `Error: "${filePath}" appears to be a binary file and cannot be read as text.`;
+        }
+
+        const content = buffer.toString('utf8');
         if (!content.trim()) return `File "${filePath}" is empty.`;
         return content;
     } catch (error) {
