@@ -58,15 +58,15 @@ client.on(Events.MessageCreate, async (message) => {
 
         console.log(`Sending to AI: "${userPrompt}"`);
 
-        let response = await chat(systemInstruction, toolDeclarations, history, currentMessage);
+        const context = [...history, currentMessage];
+        let response = await chat(systemInstruction, toolDeclarations, context);
         console.log(`[AI] ${response.content || '(tool calls)'}`);
         appendToHistory(currentMessage);
 
-        const context = [...history, currentMessage];
         let iterations = 0;
         const maxIterations = 5;
 
-        // agentic loop here
+        // agentic loop
         while (response.tool_calls?.length > 0 && iterations < maxIterations) {
             iterations++;
             console.log(`[Tool Loop] Iteration ${iterations}/${maxIterations}`);
@@ -75,7 +75,6 @@ client.on(Events.MessageCreate, async (message) => {
             appendToHistory(response);
             context.push(response);
 
-            const currentToolResults = [];
             for (const tc of response.tool_calls) {
                 const fn = availableTools[tc.function.name];
                 if (fn) {
@@ -97,27 +96,20 @@ client.on(Events.MessageCreate, async (message) => {
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: result, name: tc.function.name };
                     appendToHistory(toolMsg);
                     context.push(toolMsg);
-                    currentToolResults.push(`[${tc.function.name}]: ${result}`);
                 } else {
                     console.warn(`Tool not found: ${tc.function.name}`);
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: 'Tool not found', name: tc.function.name };
                     appendToHistory(toolMsg);
                     context.push(toolMsg);
-                    currentToolResults.push(`[${tc.function.name}]: Tool not found`);
                 }
             }
 
-            // final follow up iteration logic here - IS THIS THE RIGHT WAY?
             if (iterations === maxIterations) {
                 context.push({ role: 'user', content: 'You have reached the maximum number of tool attempts. Please provide a final text response summarizing what you found.' });
             }
 
-            const lastMsg = context.pop();
-
             console.log('[Follow-up] Sending follow-up chat with tool results in context...');
-            response = await chat(systemInstruction, toolDeclarations, context, lastMsg);
-            // Push it back so history stays complete - y tho
-            context.push(lastMsg);
+            response = await chat(systemInstruction, toolDeclarations, context);
             console.log('[Follow-up] Response:', JSON.stringify(response));
         }
 
@@ -128,10 +120,13 @@ client.on(Events.MessageCreate, async (message) => {
         // last resort failsafe here
         if (!response.content?.trim()) {
             console.log('[Follow-up ERROR] Final state empty. Using fallback text.');
-            response = { role: 'assistant', content: 'I tried to use my tools a few times to find the answer, but the commands failed or returned unreadable data. Can you clarify or provide a different search approach?' };
+            const fallback = iterations > 0
+                ? 'I used my tools but wasn\'t able to produce a final answer. Could you try rephrasing your request?'
+                : 'I wasn\'t able to generate a response. This may be a connection issue with the AI provider.';
+            response = { role: 'assistant', content: fallback };
         }
 
-        const answer = response.content || 'I encountered an error generating a response.';
+        const answer = response.content;
         console.log(`[Reply] ${answer}`);
         appendToHistory({ role: 'assistant', content: answer });
 

@@ -43,14 +43,14 @@ const toGeminiTools = (openAiTools) => {
 /**
  * Chat with tool support via Gemini REST API.
  */
-const chat = async (model, systemInstruction, tools, history, currentMessage) => {
+const chat = async (model, systemInstruction, tools, messages) => {
     const { getConfig } = require('../Utility/config');
     const apiKey = getConfig()?.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    const contents = [...history, currentMessage].map(toGeminiContent);
+    const contents = messages.map(toGeminiContent);
 
     const payload = {
         systemInstruction: { parts: [{ text: systemInstruction }] },

@@ -4,7 +4,7 @@ const OPENROUTER_API_KEY = getConfig()?.OPENROUTER_API_KEY;
 /**
  * Chat with tool support via OpenRouter REST API (OpenAI format).
  */
-const chat = async (model, systemInstruction, tools, history, currentMessage) => {
+const chat = async (model, systemInstruction, tools, messages) => {
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
             return { role: 'tool', tool_call_id: msg.tool_call_id || 'unknown', content: msg.content || '', name: msg.name || 'unknown_tool' };
@@ -23,15 +23,10 @@ const chat = async (model, systemInstruction, tools, history, currentMessage) =>
         return { role: 'user', content: msg.content || '' };
     };
 
-    const messages = [
+    messages = [
         { role: 'system', content: systemInstruction },
-        ...history.map(formatMessage),
-        formatMessage(currentMessage)
+        ...messages.map(formatMessage)
     ];
-
-    if (currentMessage.role === 'tool' && currentMessage.textPrompt) {
-        messages.push({ role: 'user', content: currentMessage.textPrompt });
-    }
 
     const payload = { model, messages, stream: true };
     if (tools?.length > 0) payload.tools = tools;

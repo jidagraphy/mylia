@@ -5,12 +5,10 @@ const OLLAMA_HOST = getConfig()?.OLLAMA_URL || 'http://127.0.0.1:11434';
 /**
  * Chat with tool support via local Ollama REST API.
  */
-const chat = async (model, systemInstruction, tools, history, currentMessage) => {
+const chat = async (model, systemInstruction, tools, messages) => {
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
-            // Convert tool results to user messages for Gemini compatibility
-            // Gemini proxy requires paired tool_calls + results with thought_signature, 
-            // which we can't produce. Flattening to user messages works universally.
+            // Convert tool results to user messages for Ollama compatibility
             return { role: 'user', content: `[Tool Result: ${msg.name || 'unknown'}]\n${msg.content || ''}` };
         }
         if (msg.role === 'assistant') {
@@ -20,9 +18,9 @@ const chat = async (model, systemInstruction, tools, history, currentMessage) =>
     };
 
     // Filter out empty assistant messages (tool-call-only responses that have no text)
+    // and merge consecutive same-role messages (e.g. user + tool-as-user back-to-back)
     const formatAndFilter = (msgs) => {
         const formatted = msgs.map(formatMessage).filter(m => m.content.trim() !== '');
-        // Merge consecutive same-role messages (e.g. user + tool-as-user back-to-back)
         const merged = [];
         for (const m of formatted) {
             if (merged.length > 0 && merged[merged.length - 1].role === m.role) {
@@ -34,10 +32,9 @@ const chat = async (model, systemInstruction, tools, history, currentMessage) =>
         return merged;
     };
 
-    const messages = [
+    messages = [
         { role: 'system', content: systemInstruction },
-        ...formatAndFilter(history),
-        formatMessage(currentMessage)
+        ...formatAndFilter(messages)
     ];
 
     const payload = { model, messages, stream: true };

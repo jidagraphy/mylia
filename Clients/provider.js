@@ -13,8 +13,8 @@ const getActiveProvider = () => {
 };
 
 
-const chat = (systemInstruction, tools, history, message) => {
-    return getActiveProvider().chat(model, systemInstruction, tools, history, message);
+const chat = (systemInstruction, tools, messages) => {
+    return getActiveProvider().chat(model, systemInstruction, tools, messages);
 };
 
 const complete = (prompt) => {
