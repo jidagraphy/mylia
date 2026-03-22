@@ -7,7 +7,7 @@ const path = require('path');
 const APP_DIR = path.resolve(__dirname);
 const PID_FILE = path.join(require('os').homedir(), '.mylia.pid');
 const LOG_FILE = path.join(require('os').homedir(), '.mylia.log');
-const { getConfig, updateConfig } = require('./Utility/config');
+const { getConfig } = require('./Utility/config');
 const { setupWorkspaceEnvironment } = require('./Utility/workspaceSetup');
 
 const command = process.argv[2];
@@ -31,9 +31,6 @@ const getSavedPid = () => {
 };
 
 
-
-const rl = require('readline');
-const os = require('os');
 
 const ensureSetup = async () => {
     setupWorkspaceEnvironment();
@@ -134,116 +131,14 @@ const logs = () => {
     process.on('SIGINT', () => { tail.kill(); process.exit(0); });
 };
 
-const readline = require('readline');
-
 const configure = () => {
     setupWorkspaceEnvironment();
-    let configObj = getConfig() || {};
-    let entries = Object.entries(configObj).map(([key, value]) => ({ key, value }));
-    let selected = 0;
-    let editing = false;
-    let editBuffer = '';
+    const configPath = require('./Utility/config').CONFIG_FILE;
+    const openCmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
 
-    let renderedLines = 0;
-    const render = () => {
-        let output = '  🧚 mylia — Settings\n\n';
-        output += '  ↑/↓ navigate  •  Enter to edit  •  Esc/q to exit\n\n';
-
-        for (let i = 0; i < entries.length; i++) {
-            const { key, value } = entries[i];
-            const cursor = i === selected ? '\x1b[36m ❯ \x1b[0m' : '   ';
-            const displayValue = key.includes('TOKEN') || key.includes('API_KEY')
-                ? (value ? '••••••••' : '(empty)')
-                : (value || '(empty)');
-
-            if (editing && i === selected) {
-                output += `${cursor}\x1b[1m${key}\x1b[0m = \x1b[33m${editBuffer}\x1b[0m▌\n`;
-            } else {
-                output += `${cursor}\x1b[1m${key}\x1b[0m = ${displayValue}\n`;
-            }
-        }
-
-        if (editing) {
-            output += '\n  Type new value and press Enter to save, Esc to cancel\n';
-        }
-
-        if (renderedLines > 0) {
-            readline.moveCursor(process.stdout, 0, -renderedLines);
-        }
-        readline.cursorTo(process.stdout, 0);
-        process.stdout.write('\x1b[J');
-
-        process.stdout.write(output);
-        renderedLines = output.split('\n').length - 1;
-    };
-
-    const saveEntry = () => {
-        entries[selected].value = editBuffer;
-        updateConfig({ [entries[selected].key]: editBuffer });
-        editing = false;
-        render();
-    };
-
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.setEncoding('utf8');
-
-    render();
-
-    process.stdin.on('data', (key) => {
-        if (editing) {
-            if (key === '\x1b' || key === '\x1b[') {
-                // Esc — cancel editing
-                editing = false;
-                render();
-            } else if (key === '\r' || key === '\n') {
-                // Enter — save
-                saveEntry();
-            } else if (key === '\x7f' || key === '\b') {
-                // Backspace
-                editBuffer = editBuffer.slice(0, -1);
-                render();
-            } else if (key >= ' ' && !key.startsWith('\x1b')) {
-                // Regular character
-                editBuffer += key;
-                render();
-            }
-            return;
-        }
-
-        // Navigation mode
-        if (key === '\x1b[A') {
-            // Up arrow
-            selected = Math.max(0, selected - 1);
-            render();
-        } else if (key === '\x1b[B') {
-            // Down arrow
-            selected = Math.min(entries.length - 1, selected + 1);
-            render();
-        } else if (key === '\r' || key === '\n') {
-            // Enter — start editing
-            editing = true;
-            editBuffer = entries[selected].value;
-            render();
-        } else if (key === 'q' || key === '\x1b' || key === '\x03') {
-            // q, Esc, Ctrl+C — exit
-            if (renderedLines > 0) {
-                readline.moveCursor(process.stdout, 0, -renderedLines);
-                readline.cursorTo(process.stdout, 0);
-                process.stdout.write('\x1b[J');
-            }
-            console.log('Settings saved. ✨');
-
-            const pid = getSavedPid();
-            if (pid && isRunning(pid)) {
-                console.log('Restarting mylia to apply changes...');
-                stop();
-                setTimeout(start, 500);
-            }
-
-            process.exit(0);
-        }
-    });
+    console.log(`Opening config: ${configPath}`);
+    console.log(`(If this doesn't work, edit it manually: vim ${configPath})`);
+    require('child_process').exec(`${openCmd} "${configPath}"`);
 };
 
 
