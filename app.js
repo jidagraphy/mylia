@@ -8,6 +8,7 @@ const { buildSystemInstruction } = require('./Utility/contextBuilder');
 const { generateSessionDiary } = require('./Tools/compactHistory');
 const { startSession, endSession, checkAndRenewSession } = require('./Utility/sessionManager');
 const { availableTools, toolDeclarations } = require('./Tools');
+const { log, error: logError } = require('./Utility/logger');
 
 setupWorkspaceEnvironment();
 
@@ -22,7 +23,7 @@ const client = new Client({
 });
 
 client.once(Events.ClientReady, (c) => {
-    console.log(`Ready! Logged in as ${c.user.tag}`);
+    log('Bot', `Ready! Logged in as ${c.user.tag}`);
 });
 
 client.on(Events.MessageCreate, async (message) => {
@@ -48,7 +49,7 @@ client.on(Events.MessageCreate, async (message) => {
 
         const { renewed, previousSessionId } = await checkAndRenewSession(generateSessionDiary);
         if (renewed) {
-            console.log(`[Session] Implicitly renewed session due to inactivity.`);
+            log('Session', 'Implicitly renewed session due to inactivity.');
         }
 
         const userPrompt = message.content.replace(`<@${client.user.id}>`, '').trim();
@@ -56,11 +57,10 @@ client.on(Events.MessageCreate, async (message) => {
         const history = getSessionHistoryByTokens(4000); // Sliding window by ~tokens
         const currentMessage = { role: 'user', content: userPrompt };
 
-        console.log(`Sending to AI: "${userPrompt}"`);
+        log('User', userPrompt);
 
         const context = [...history, currentMessage];
         let response = await chat(systemInstruction, toolDeclarations, context);
-        console.log(`[AI] ${response.content || '(tool calls)'}`);
         appendToHistory(currentMessage);
 
         let iterations = 0;
@@ -69,8 +69,6 @@ client.on(Events.MessageCreate, async (message) => {
         // agentic loop
         while (response.tool_calls?.length > 0 && iterations < maxIterations) {
             iterations++;
-            console.log(`[Tool Loop] Iteration ${iterations}/${maxIterations}`);
-            console.log('Tool calls:', JSON.stringify(response.tool_calls, null, 2));
 
             appendToHistory(response);
             context.push(response);
@@ -78,26 +76,25 @@ client.on(Events.MessageCreate, async (message) => {
             for (const tc of response.tool_calls) {
                 const fn = availableTools[tc.function.name];
                 if (fn) {
-                    console.log(`Executing: ${tc.function.name}`);
-
                     let parsedArgs = tc.function.arguments;
                     if (typeof parsedArgs === 'string') {
                         if (!parsedArgs.trim()) {
                             parsedArgs = {};
                         } else {
                             try { parsedArgs = JSON.parse(parsedArgs); }
-                            catch (e) { console.error('Failed to parse tool args:', e.message); parsedArgs = {}; }
+                            catch (e) { logError('Tool', `Failed to parse args for ${tc.function.name}: ${e.message}`); parsedArgs = {}; }
                         }
                     }
 
+                    const argsStr = Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : '';
                     const result = await fn(parsedArgs);
-                    console.log(`Result: ${result}`);
+                    log('Tool', `${tc.function.name}(${argsStr}) → ${String(result).slice(0, 100)}`);
 
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: result, name: tc.function.name };
                     appendToHistory(toolMsg);
                     context.push(toolMsg);
                 } else {
-                    console.warn(`Tool not found: ${tc.function.name}`);
+                    logError('Tool', `Not found: ${tc.function.name}`);
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: 'Tool not found', name: tc.function.name };
                     appendToHistory(toolMsg);
                     context.push(toolMsg);
@@ -108,18 +105,16 @@ client.on(Events.MessageCreate, async (message) => {
                 context.push({ role: 'user', content: 'You have reached the maximum number of tool attempts. Please provide a final text response summarizing what you found.' });
             }
 
-            console.log('[Follow-up] Sending follow-up chat with tool results in context...');
             response = await chat(systemInstruction, toolDeclarations, context);
-            console.log('[Follow-up] Response:', JSON.stringify(response));
         }
 
         if (response.tool_calls?.length > 0 && iterations >= maxIterations) {
-            console.log('[Tool Loop] Reached max iterations. Stopping tool execution.');
+            log('Tool', `Reached max iterations (${maxIterations}). Stopping.`);
         }
 
         // last resort failsafe here
         if (!response.content?.trim()) {
-            console.log('[Follow-up ERROR] Final state empty. Using fallback text.');
+            logError('Reply', 'Final response empty. Using fallback.');
             const fallback = iterations > 0
                 ? 'I used my tools but wasn\'t able to produce a final answer. Could you try rephrasing your request?'
                 : 'I wasn\'t able to generate a response. This may be a connection issue with the AI provider.';
@@ -127,7 +122,7 @@ client.on(Events.MessageCreate, async (message) => {
         }
 
         const answer = response.content;
-        console.log(`[Reply] ${answer}`);
+        log('Reply', answer);
         appendToHistory({ role: 'assistant', content: answer });
 
         clearInterval(typingInterval);
@@ -158,13 +153,13 @@ client.on(Events.MessageCreate, async (message) => {
 
     } catch (error) {
         clearInterval(typingInterval);
-        console.error('Failed to process message:', error);
+        logError('Bot', `Failed to process message: ${error.message}`);
         await message.reply('Sorry, I encountered an error.');
     }
 });
 
 const shutdown = async () => {
-    console.log('\nShutting down gracefully...');
+    log('Bot', 'Shutting down gracefully...');
     client.destroy();
     process.exit(0);
 };

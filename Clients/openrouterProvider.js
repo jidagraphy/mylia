@@ -82,8 +82,6 @@ const chat = async (model, systemInstruction, tools, messages) => {
 
                     if (delta?.content) {
                         result.content += delta.content;
-                        // Print directly to console for streaming effect
-                        process.stdout.write(delta.content);
                     }
 
                     if (delta?.tool_calls?.length > 0) {
@@ -109,9 +107,6 @@ const chat = async (model, systemInstruction, tools, messages) => {
                 id: fn.id,
                 function: { name: fn.name, arguments: fn.arguments }
             }));
-            console.log('\n[OpenRouterProvider] Emitting built Tool Calls:', JSON.stringify(result.tool_calls));
-        } else {
-            console.log(''); // newline after text stream
         }
 
     } catch (error) {
