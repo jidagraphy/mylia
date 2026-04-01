@@ -83,8 +83,8 @@ const isInactive = () => {
     return (Date.now() - lastActivityTime) > INACTIVE_TIMEOUT;
 };
 
-const checkAndRenewSession = async (onEndSession) => {
-    if (!sessionId || isInactive()) {
+const checkAndRenewSession = async (onEndSession, { force = false } = {}) => {
+    if (!sessionId || isInactive() || force) {
         const previousSessionId = sessionId;
         if (previousSessionId && onEndSession) {
             // Check if diary already exists to avoid redundant generation from restarts

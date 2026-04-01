@@ -22,8 +22,37 @@ const client = new Client({
     partials: [Partials.Channel],
 });
 
-client.once(Events.ClientReady, (c) => {
+const STARTUP_PROMPT = `A new session has just started. Greet the user in your persona — keep it to 2-3 sentences.`;
+
+const runSessionStartup = async () => {
+    const systemInstruction = buildSystemInstruction();
+    const response = await chat(systemInstruction, toolDeclarations, [{ role: 'user', content: STARTUP_PROMPT }]);
+    const greeting = response.content?.trim() || null;
+    if (greeting) appendToHistory({ role: 'assistant', content: greeting });
+    return greeting;
+};
+
+client.once(Events.ClientReady, async (c) => {
     log('Bot', `Ready! Logged in as ${c.user.tag}`);
+
+    await c.application.commands.set([
+        { name: 'new', description: 'Start a new session (saves current session diary)' },
+    ]);
+    log('Bot', 'Slash commands registered.');
+});
+
+client.on(Events.InteractionCreate, async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+
+    if (interaction.commandName === 'new') {
+        await interaction.deferReply();
+        const { previousSessionId } = await checkAndRenewSession(generateSessionDiary, { force: true });
+        log('Session', `Force renewed session. Previous: ${previousSessionId}`);
+
+        const greeting = await runSessionStartup() || 'New session started!';
+        log('Session', 'Startup greeting sent.');
+        await interaction.editReply(greeting);
+    }
 });
 
 client.on(Events.MessageCreate, async (message) => {
@@ -36,16 +65,6 @@ client.on(Events.MessageCreate, async (message) => {
         typingInterval = setInterval(() => {
             message.channel.sendTyping().catch(() => { });
         }, 8000);
-
-        // TODO: discord interactive commands
-        // Handle /new command for explicit session renewal
-        // if (message.content.trim() === '/new') {
-        //     await checkAndRenewSession(async (oldSessionId) => {
-        //         await generateSessionDiary(oldSessionId);
-        //     });
-        //     await message.reply('New session started. Previous session diary has been saved.');
-        //     return;
-        // }
 
         const { renewed, previousSessionId } = await checkAndRenewSession(generateSessionDiary);
         if (renewed) {
