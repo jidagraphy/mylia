@@ -153,6 +153,11 @@ const configure = () => {
 
 
 
+const restart = async () => {
+    stop();
+    await start();
+};
+
 const installSkill = async (repoUrl) => {
     await ensureSetup();
     if (!repoUrl) {
@@ -210,6 +215,7 @@ const help = () => {
     mylia status             Show running status, provider, and model
     mylia logs               Tail the live console output
     mylia config             Interactive settings editor
+    mylia restart            Restart the daemon
     mylia install-skill <url> Install a ClawHub skill from a Git repository
 `);
 };
@@ -217,6 +223,7 @@ const help = () => {
 switch (command) {
     case 'start': start(); break;
     case 'stop': stop(); break;
+    case 'restart': restart(); break;
     case 'status': status(); break;
     case 'logs': logs(); break;
     case 'config':
