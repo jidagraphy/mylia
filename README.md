@@ -64,6 +64,7 @@ Use the built-in CLI to manage mylia from anywhere:
 # Daemon management
 mylia start              # Start as background daemon
 mylia stop               # Stop the daemon
+mylia restart            # Stop and restart the daemon
 mylia status             # Show running status, provider, and model
 mylia logs               # Tail live console output
 
@@ -79,6 +80,14 @@ Or run directly without the CLI:
 ```bash
 node app.js
 ```
+
+### Discord Slash Commands
+
+Once the bot is running and invited to your server, the following slash commands are available:
+
+| Command | Description |
+|---------|-------------|
+| `/new`  | Saves the current session as a diary and starts a fresh session with a greeting |
 
 ---
 
