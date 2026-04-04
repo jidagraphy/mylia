@@ -11,10 +11,14 @@ const toGeminiContent = (msg) => {
             parts: [{ functionResponse: { name: msg.name, response: { result: msg.content } } }]
         };
     }
-    return {
-        role: msg.role === 'assistant' ? 'model' : msg.role,
-        parts: [{ text: msg.content }]
-    };
+    const parts = [];
+    if (msg.content) parts.push({ text: msg.content });
+    if (msg.images?.length > 0) {
+        for (const img of msg.images) {
+            parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
+        }
+    }
+    return { role: msg.role === 'assistant' ? 'model' : msg.role, parts };
 };
 
 /**

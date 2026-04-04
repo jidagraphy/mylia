@@ -20,6 +20,14 @@ const chat = async (model, systemInstruction, tools, messages) => {
             }
             return out;
         }
+        if (msg.images?.length > 0) {
+            const parts = [];
+            if (msg.content) parts.push({ type: 'text', text: msg.content });
+            for (const img of msg.images) {
+                parts.push({ type: 'image_url', image_url: { url: `data:${img.mimeType};base64,${img.data}` } });
+            }
+            return { role: 'user', content: parts };
+        }
         return { role: 'user', content: msg.content || '' };
     };
 

@@ -14,7 +14,9 @@ const chat = async (model, systemInstruction, tools, messages) => {
         if (msg.role === 'assistant') {
             return { role: 'assistant', content: msg.content || '' };
         }
-        return { role: 'user', content: msg.content || '' };
+        const out = { role: 'user', content: msg.content || '' };
+        if (msg.images?.length > 0) out.images = msg.images.map(img => img.data);
+        return out;
     };
 
     // Filter out empty assistant messages (tool-call-only responses that have no text)

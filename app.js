@@ -74,13 +74,23 @@ client.on(Events.MessageCreate, async (message) => {
         const userPrompt = message.content.replace(`<@${client.user.id}>`, '').trim();
         const systemInstruction = buildSystemInstruction();
         const history = getSessionHistoryByTokens(4000); // Sliding window by ~tokens
-        const currentMessage = { role: 'user', content: userPrompt };
 
-        log('User', userPrompt);
+        // Collect image attachments
+        const imageAttachments = [...message.attachments.values()].filter(a => a.contentType?.startsWith('image/'));
+        const images = await Promise.all(imageAttachments.map(async (attachment) => {
+            const res = await fetch(attachment.url);
+            const buffer = await res.arrayBuffer();
+            return { data: Buffer.from(buffer).toString('base64'), mimeType: attachment.contentType.split(';')[0] };
+        }));
+
+        const currentMessage = { role: 'user', content: userPrompt };
+        if (images.length > 0) currentMessage.images = images;
+
+        log('User', userPrompt + (images.length > 0 ? ` [+${images.length} image(s)]` : ''));
 
         const context = [...history, currentMessage];
         let response = await chat(systemInstruction, toolDeclarations, context);
-        appendToHistory(currentMessage);
+        appendToHistory({ role: 'user', content: userPrompt }); // images not persisted to avoid history bloat
 
         let iterations = 0;
         const maxIterations = 5;
