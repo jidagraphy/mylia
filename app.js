@@ -162,7 +162,8 @@ client.on(Events.MessageCreate, async (message) => {
             remaining = remaining.substring(splitAt).trimStart();
         }
 
-        await message.reply(chunks[0]);
+        // await message.reply(chunks[0]);
+        await message.channel.send(chunks[0]);
         for (let i = 1; i < chunks.length; i++) {
             await message.channel.send(chunks[i]);
         }
@@ -173,7 +174,8 @@ client.on(Events.MessageCreate, async (message) => {
     } catch (error) {
         clearInterval(typingInterval);
         logError('Bot', `Failed to process message: ${error.message}`);
-        await message.reply('Sorry, I encountered an error.');
+        // await message.reply('Sorry, I encountered an error.');
+        await message.channel.send('Sorry, I encountered an error.');
     }
 });
 
