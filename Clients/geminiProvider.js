@@ -95,7 +95,7 @@ const chat = async (model, systemInstruction, tools, messages) => {
         const data = await res.json();
 
         if (!res.ok) {
-            throw new Error(`Google AI API Error: ${data.error?.message || JSON.stringify(data)}`);
+            throw new Error(`Gemini API Error: ${data.error?.message || JSON.stringify(data)}`);
         }
 
         const candidate = data.candidates?.[0];
@@ -145,11 +145,11 @@ const complete = async (model, prompt) => {
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(`Google AI API Error: ${data.error?.message || JSON.stringify(data)}`);
+        if (!res.ok) throw new Error(`Gemini API Error: ${data.error?.message || JSON.stringify(data)}`);
 
         return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
     } catch (error) {
-        console.error('[GoogleProvider] Complete fetch error:', error);
+        console.error('[GeminiProvider] Complete fetch error:', error);
         return '';
     }
 };
