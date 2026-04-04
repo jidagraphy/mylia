@@ -18,23 +18,44 @@ const toGeminiContent = (msg) => {
 };
 
 /**
+ * Recursively converts a JSON Schema node to Gemini's format (uppercase types,
+ * nested objects/arrays, enum passthrough).
+ */
+const toGeminiSchema = (schema) => {
+    if (!schema) return {};
+    const rawType = Array.isArray(schema.type) ? schema.type[0] : schema.type;
+    const result = { type: (rawType || 'STRING').toUpperCase() };
+    if (schema.description) result.description = schema.description;
+    if (schema.enum) result.enum = schema.enum;
+    if (rawType === 'object' && schema.properties) {
+        result.properties = Object.fromEntries(
+            Object.entries(schema.properties).map(([k, v]) => [k, toGeminiSchema(v)])
+        );
+        if (schema.required) result.required = schema.required;
+    }
+    if (rawType === 'array' && schema.items) {
+        result.items = toGeminiSchema(schema.items);
+    }
+    return result;
+};
+
+/**
  * Converts OpenAI-format tool declarations to Gemini's format.
  */
 const toGeminiTools = (openAiTools) => {
     if (!openAiTools?.length) return undefined;
     return openAiTools.map(t => {
         const fn = t.function;
+        const params = fn.parameters || {};
         return {
             name: fn.name,
             description: fn.description,
             parameters: {
-                type: 'OBJECT', // Gemini requires uppercase types
+                type: 'OBJECT',
                 properties: Object.fromEntries(
-                    Object.entries(fn.parameters?.properties || {}).map(([k, v]) => [
-                        k, { type: v.type.toUpperCase(), description: v.description }
-                    ])
+                    Object.entries(params.properties || {}).map(([k, v]) => [k, toGeminiSchema(v)])
                 ),
-                required: fn.parameters?.required || []
+                required: params.required || []
             }
         };
     });
@@ -62,36 +83,41 @@ const chat = async (model, systemInstruction, tools, messages) => {
         payload.tools = [{ functionDeclarations: geminiTools }];
     }
 
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-        throw new Error(`Gemini API Error: ${data.error?.message || JSON.stringify(data)}`);
-    }
-
-    const candidate = data.candidates?.[0];
-    if (!candidate) return { role: 'assistant', content: '', tool_calls: [] };
-
     const result = { role: 'assistant', content: '', tool_calls: [] };
-    const parts = candidate.content?.parts || [];
 
-    // Extract text
-    const textPart = parts.find(p => p.text);
-    if (textPart) result.content = textPart.text;
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-    // Extract function calls
-    const functionCallParts = parts.filter(p => p.functionCall);
-    if (functionCallParts.length > 0) {
-        result.tool_calls = functionCallParts.map(fc => ({
-            function: { name: fc.functionCall.name, arguments: fc.functionCall.args }
-        }));
-        // Store raw parts to echo back in history for next round
-        result._rawParts = parts;
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(`Google AI API Error: ${data.error?.message || JSON.stringify(data)}`);
+        }
+
+        const candidate = data.candidates?.[0];
+        if (!candidate) return result;
+
+        const parts = candidate.content?.parts || [];
+
+        // Extract text (skip thinking parts returned by reasoning models)
+        const textPart = parts.find(p => p.text && !p.thought);
+        if (textPart) result.content = textPart.text;
+
+        // Extract function calls
+        const functionCallParts = parts.filter(p => p.functionCall);
+        if (functionCallParts.length > 0) {
+            result.tool_calls = functionCallParts.map(fc => ({
+                function: { name: fc.functionCall.name, arguments: fc.functionCall.args }
+            }));
+            // Store raw parts to echo back in history for next round
+            result._rawParts = parts;
+        }
+    } catch (error) {
+        console.error('[GeminiProvider] Fetch error:', error);
     }
 
     return result;
@@ -111,16 +137,21 @@ const complete = async (model, prompt) => {
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
     };
 
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(`Gemini API Error: ${data.error?.message || JSON.stringify(data)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(`Google AI API Error: ${data.error?.message || JSON.stringify(data)}`);
 
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    } catch (error) {
+        console.error('[GoogleProvider] Complete fetch error:', error);
+        return '';
+    }
 };
 
 module.exports = { chat, complete };
