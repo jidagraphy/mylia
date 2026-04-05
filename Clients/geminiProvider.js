@@ -154,7 +154,10 @@ const complete = async (model, prompt, systemPrompt) => {
         const data = await res.json();
         if (!res.ok) throw new Error(`Gemini API Error: ${data.error?.message || JSON.stringify(data)}`);
 
-        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        // Filter out thinking parts (thought: true) and only keep the actual answer
+        const parts = data.candidates?.[0]?.content?.parts || [];
+        const answerParts = parts.filter(p => !p.thought);
+        return answerParts.map(p => p.text).join('').trim() || '';
     } catch (error) {
         console.error('[GeminiProvider] Complete fetch error:', error);
         return '';

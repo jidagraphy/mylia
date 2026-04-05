@@ -28,7 +28,7 @@ const generateSessionDiary = async (sessionId) => {
         .map(m => `[${m.timestamp || ''}] [${m.role}]: ${m.content}`)
         .join('\n');
 
-    const systemPrompt = `You are a session summarizer. Output ONLY bullet points. No headers, no preamble, no commentary, no reasoning, no self-evaluation. Start directly with "- ".`;
+    const systemPrompt = `You are a session summarizer. Output ONLY bullet points. No headers, no preamble, no commentary, no reasoning. Start directly with "- ".`;
 
     const prompt = `Transcript from session ${sessionId}:
 ${historyText}
