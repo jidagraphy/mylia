@@ -118,16 +118,15 @@ Skills are self-contained instruction packages that extend what mylia can do. Ea
 
 ### Default Skills
 
-mylia ships with two built-in skills, copied to your workspace on first run:
+mylia ships with one built-in skill, copied to your workspace on first run:
 
 | Skill | Description |
 |-------|-------------|
 | `skill-creator` | Creates new skills on demand. Ask mylia to make a skill and it will scaffold the folder, write the SKILL.md, and verify it. |
-| `system-check` | Reports on host machine health — disk, memory, CPU load, and uptime. |
 
 ### Creating Skills
 
-You can ask mylia to create a skill for you (it will use `skill_creator`), or create one manually:
+You can ask mylia to create a skill for you (it will use `skill-creator`), or create one manually:
 
 ```
 Skills/

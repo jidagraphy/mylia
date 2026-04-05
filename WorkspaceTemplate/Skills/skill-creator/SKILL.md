@@ -70,7 +70,7 @@ Not great:
 > ALWAYS read the file before editing. NEVER skip this step.
 
 Better:
-> Read the file before editing — editFile replaces the entire file content, so without reading first you'll lose everything that was already there.
+> Read the file before editing — edit_file replaces the entire file content, so without reading first you'll lose everything that was already there.
 
 **Keep it lean.** Remove instructions that aren't pulling their weight. If something is obvious or standard behavior, don't waste lines on it. Aim for under 200 lines — if you're going longer, you're probably overspecifying.
 
