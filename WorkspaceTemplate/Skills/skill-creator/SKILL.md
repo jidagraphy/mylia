@@ -1,5 +1,5 @@
 ---
-name: skill_creator
+name: skill-creator
 description: Create new skills, modify existing skills, or help the user design a skill from scratch. Use when the user wants to make, build, add, edit, or improve a skill — even if they don't use the word "skill" explicitly. If someone describes a repeatable workflow they want you to learn, that's a skill.
 ---
 
@@ -27,7 +27,7 @@ Every skill is a folder inside `Skills/` with a `SKILL.md` file:
 
 ```
 Skills/
-└── my_skill/
+└── my-skill/
     └── SKILL.md
 ```
 
@@ -35,7 +35,7 @@ The `SKILL.md` has two parts: YAML frontmatter and markdown instructions.
 
 ```markdown
 ---
-name: my_skill
+name: my-skill
 description: One-line description of what it does and when to use it.
 ---
 
@@ -46,9 +46,9 @@ Instructions for how to perform this skill.
 
 ### Naming
 
-Use `snake_case` for both the folder name and the `name` field. Keep it short and descriptive.
+Use `kebab-case` (lowercase with hyphens) for both the folder name and the `name` field. This follows the convention used by Claude and OpenClaw. Keep it short and descriptive.
 
-**Examples:** `code_review`, `daily_brief`, `git_helper`, `web_scraper`
+**Examples:** `code-review`, `daily-brief`, `git-helper`, `web-scraper`
 
 ### The Description Field
 
@@ -89,7 +89,7 @@ Not every skill needs every section — use what fits:
 
 ```markdown
 ---
-name: skill_name
+name: skill-name
 description: What it does and when to trigger.
 ---
 
@@ -113,7 +113,7 @@ Constraints, edge cases, or important details.
 ## Creating the Skill
 
 1. Create the folder and file using `edit_file`:
-   - Path: `Skills/<skill_name>/SKILL.md`
+   - Path: `Skills/<skill-name>/SKILL.md`
    - Folder name must match the `name` field in frontmatter
 
 2. Verify with `read_file` that the file is well-formed and the frontmatter parses correctly.
@@ -126,14 +126,14 @@ If the user wants to improve a skill:
 
 1. Use `view_skill` to read the current version.
 2. Discuss what needs to change.
-3. Use `edit_file` to update `Skills/<skill_name>/SKILL.md`.
+3. Use `edit_file` to update `Skills/<skill-name>/SKILL.md`.
 4. Read it back to confirm.
 
 When improving, think about generalization — the skill should work across many situations, not just the specific example that prompted the edit. If something keeps going wrong, try a different approach rather than adding more rigid constraints.
 
 ## Workspace Reference
 
-Your workspace root is `~/.mylia/`. Skills live at `Skills/<skill_name>/SKILL.md`.
+Your workspace root is `~/.mylia/`. Skills live at `Skills/<skill-name>/SKILL.md`.
 
 Available tools that skills can reference:
 - `read_file` — Read any file (relative paths resolve from workspace root)

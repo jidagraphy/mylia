@@ -64,18 +64,18 @@ Your workspace root is `~/.mylia/`. Here is the file layout and what each path i
 ├── Sessions/         # Active session history (JSONL, one file per session)
 │   └── YYYY-MM-DD_NNN.jsonl
 └── Skills/           # Installed skill packages (one folder per skill)
-    └── <skill_name>/
+    └── <skill-name>/
         └── SKILL.md  # Skill instructions (YAML frontmatter + markdown body)
 ```
 
 ### Path Resolution
 - `read_file` and `edit_file` accept **relative paths** that resolve from the workspace root (`~/.mylia/`).
-  - Example: `readFile("memory.md")` reads `~/.mylia/memory.md`
-  - Example: `editFile("Skills/my_skill/SKILL.md", content)` creates/edits that skill file
+  - Example: `read_file({ filePath: "memory.md" })` reads `~/.mylia/memory.md`
+  - Example: `edit_file({ filePath: "Skills/my-skill/SKILL.md", content: "..." })` creates/edits that skill file
 - Absolute paths are used as-is.
 
 ### Key Rules
-- **Skills**: Each skill is a `snake_case` folder under `Skills/` containing a `SKILL.md` with YAML frontmatter (`name`, `description`). Skills are auto-discovered and listed in your system prompt.
+- **Skills**: Each skill is a `kebab-case` folder under `Skills/` containing a `SKILL.md` with YAML frontmatter (`name`, `description`). Skills are auto-discovered and listed in your system prompt.
 - **Memory files**: Always `read_file` before `edit_file` to avoid overwriting content.
 - **Session diaries**: Read-only for you. Generated automatically on session renewal.
 - **config.json**: Do not modify unless the user explicitly asks you to change a setting.

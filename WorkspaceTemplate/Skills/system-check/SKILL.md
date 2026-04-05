@@ -1,5 +1,5 @@
 ---
-name: system_check
+name: system-check
 description: Check the host machine's health — disk usage, memory, CPU load, and uptime. Use when the user asks how their system is doing, wants a status report, or mentions anything about storage, RAM, or performance.
 ---
 

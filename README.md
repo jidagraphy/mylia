@@ -122,8 +122,8 @@ mylia ships with two built-in skills, copied to your workspace on first run:
 
 | Skill | Description |
 |-------|-------------|
-| `skill_creator` | Creates new skills on demand. Ask mylia to make a skill and it will scaffold the folder, write the SKILL.md, and verify it. |
-| `system_check` | Reports on host machine health — disk, memory, CPU load, and uptime. |
+| `skill-creator` | Creates new skills on demand. Ask mylia to make a skill and it will scaffold the folder, write the SKILL.md, and verify it. |
+| `system-check` | Reports on host machine health — disk, memory, CPU load, and uptime. |
 
 ### Creating Skills
 
@@ -131,20 +131,20 @@ You can ask mylia to create a skill for you (it will use `skill_creator`), or cr
 
 ```
 Skills/
-└── my_skill/
+└── my-skill/
     └── SKILL.md
 ```
 
 ```markdown
 ---
-name: my_skill
+name: my-skill
 description: What it does and when to use it.
 ---
 
 Instructions for the agent to follow.
 ```
 
-Skill names use `snake_case` for both the folder and the `name` field.
+Skill names use `kebab-case` (lowercase with hyphens) for both the folder and the `name` field.
 
 ### Installing Skills
 
