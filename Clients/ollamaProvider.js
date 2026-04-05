@@ -98,14 +98,18 @@ const chat = async (model, systemInstruction, tools, messages) => {
 /**
  * Simple text completion via local Ollama.
  */
-const complete = async (model, prompt) => {
+const complete = async (model, prompt, systemPrompt) => {
     try {
+        const messages = [];
+        if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+        messages.push({ role: 'user', content: prompt });
+
         const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model,
-                messages: [{ role: 'user', content: prompt }],
+                messages,
                 stream: false
             })
         });

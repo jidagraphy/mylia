@@ -130,7 +130,7 @@ const chat = async (model, systemInstruction, tools, messages) => {
 /**
  * Simple text completion via Gemini REST API (no tools, no history). Used for summarization.
  */
-const complete = async (model, prompt) => {
+const complete = async (model, prompt, systemPrompt) => {
     const { getConfig } = require('../Utility/config');
     const apiKey = getConfig()?.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY not set");
@@ -140,6 +140,9 @@ const complete = async (model, prompt) => {
     const payload = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }]
     };
+    if (systemPrompt) {
+        payload.systemInstruction = { parts: [{ text: systemPrompt }] };
+    }
 
     try {
         const res = await fetch(endpoint, {

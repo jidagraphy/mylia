@@ -17,8 +17,8 @@ const chat = (systemInstruction, tools, messages) => {
     return getActiveProvider().chat(model, systemInstruction, tools, messages);
 };
 
-const complete = (prompt) => {
-    return getActiveProvider().complete(model, prompt);
+const complete = (prompt, systemPrompt) => {
+    return getActiveProvider().complete(model, prompt, systemPrompt);
 };
 
 module.exports = { chat, complete };

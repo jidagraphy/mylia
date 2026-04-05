@@ -127,8 +127,12 @@ const chat = async (model, systemInstruction, tools, messages) => {
 /**
  * Simple text completion via OpenRouter REST API.
  */
-const complete = async (model, prompt) => {
+const complete = async (model, prompt, systemPrompt) => {
     try {
+        const messages = [];
+        if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+        messages.push({ role: 'user', content: prompt });
+
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -139,7 +143,7 @@ const complete = async (model, prompt) => {
             },
             body: JSON.stringify({
                 model,
-                messages: [{ role: 'user', content: prompt }],
+                messages,
                 stream: false
             })
         });

@@ -28,19 +28,17 @@ const generateSessionDiary = async (sessionId) => {
         .map(m => `[${m.timestamp || ''}] [${m.role}]: ${m.content}`)
         .join('\n');
 
-    const prompt = `Below is the transcript from session ${sessionId}:\n${historyText}\n\nWrite a session diary as concise bullet points. This will be read by the AI assistant at the start of future sessions as context, so write it as factual reference notes — not narrative, not in first person.
+    const systemPrompt = `You are a session summarizer. Output ONLY bullet points. No headers, no preamble, no commentary, no reasoning, no self-evaluation. Start directly with "- ".`;
 
-Include:
-- What the user asked for or talked about
-- Decisions made or preferences expressed
-- Anything unresolved or left for next time
-- Key facts learned about the user
-- The general mood and any casual/fun moments
+    const prompt = `Transcript from session ${sessionId}:
+${historyText}
 
-Skip verbose tool outputs and anything already saved to memory.md or user.md. Aim for 5-10 bullet points max.`;
+---
+
+Summarize as 5-10 bullet points covering: user requests, decisions made, preferences expressed, unresolved items, key user facts, and general mood/fun moments. Skip tool output details. Write as factual third-person notes. Preserve exact names, paths, and identifiers.`;
 
     try {
-        const summary = await complete(prompt);
+        const summary = await complete(prompt, systemPrompt);
         if (!summary) return 'Failed to generate session diary.';
 
         ensureMemoryDir();
