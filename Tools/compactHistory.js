@@ -28,11 +28,16 @@ const generateSessionDiary = async (sessionId) => {
         .map(m => `[${m.timestamp || ''}] [${m.role}]: ${m.content}`)
         .join('\n');
 
-    const prompt = `Below is the transcript from session ${sessionId}:\n${historyText}\n\nWrite a brief session log summarizing this chat.
+    const prompt = `Below is the transcript from session ${sessionId}:\n${historyText}\n\nWrite a session diary as concise bullet points. This will be read by the AI assistant at the start of future sessions as context, so write it as factual reference notes — not narrative, not in first person.
 
-    Constraints:
-    - Keep it short to about 3 paragraphs max.
-    - Capture the general vibe and the main topics we talked about.`;
+Include:
+- What the user asked for or talked about
+- Decisions made or preferences expressed
+- Anything unresolved or left for next time
+- Key facts learned about the user
+- The general mood and any casual/fun moments
+
+Skip verbose tool outputs and anything already saved to memory.md or user.md. Aim for 5-10 bullet points max.`;
 
     try {
         const summary = await complete(prompt);
