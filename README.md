@@ -108,13 +108,45 @@ Once the bot is running and invited to your server, the following slash commands
 - **`user.md`**: Profile data concerning the primary user.
 - **`Memory/`**: Stores auto-generated session diaries summarizing past conversations.
 - **`Sessions/`**: Active connection states.
-- **`Skills/`**: Downloaded skill repositories containing custom instructions.
+- **`Skills/`**: Installed skill packages. Each subfolder contains a `SKILL.md` with instructions the agent follows.
 
 ---
 
 ## Skills
 
-`mylia` supports installing [ClawHub](https://clawhub.ai)-style markdown skills. 
+Skills are self-contained instruction packages that extend what mylia can do. Each skill is a folder inside `Skills/` with a `SKILL.md` file containing YAML frontmatter and markdown instructions. Skills are auto-discovered and listed in the agent's system prompt — when a user request matches a skill, the agent reads its instructions and follows them.
+
+### Default Skills
+
+mylia ships with two built-in skills, copied to your workspace on first run:
+
+| Skill | Description |
+|-------|-------------|
+| `skill_creator` | Creates new skills on demand. Ask mylia to make a skill and it will scaffold the folder, write the SKILL.md, and verify it. |
+| `system_check` | Reports on host machine health — disk, memory, CPU load, and uptime. |
+
+### Creating Skills
+
+You can ask mylia to create a skill for you (it will use `skill_creator`), or create one manually:
+
+```
+Skills/
+└── my_skill/
+    └── SKILL.md
+```
+
+```markdown
+---
+name: my_skill
+description: What it does and when to use it.
+---
+
+Instructions for the agent to follow.
+```
+
+Skill names use `snake_case` for both the folder and the `name` field.
+
+### Installing Skills
 
 You can install skills directly from any GitHub repository:
 
@@ -122,27 +154,18 @@ You can install skills directly from any GitHub repository:
 mylia install-skill <github-repo-url>
 ```
 
-Currently there are no default skills. You can make your own skills with the clawhub skills.md convention :
-```
----
-name: <skill-name>
-description: <skill-description>
----
-<skill-content>
-```
-
-DO NOT INSTALL UNTRUSTED SKILLS - i will NOT be responsible for any damages.
+> **Warning:** Do not install untrusted skills. Skills can instruct the agent to run shell commands and modify files. You are responsible for reviewing any skill you install.
 
 ---
 
 ## Tools
 
-- **`executeShell`** — Runs shell commands on the host machine and returns the output (30s timeout).
-- **`webFetch`** — Fetches a web page and returns clean text with all HTML, JS, and CSS stripped.
-- **`readFile`** — Reads any file. Used to inspect memory, soul, user profile, session diaries, etc.
-- **`editFile`** — Edits a file by replacing its content. Automatically backs up the existing file to `.bak` and returns the previous content.
-- **`viewSkill`** — Reads the instructions for an installed skill.
-- **`compactHistory`** — Summarizes the current session into a diary file.
+- **`execute_shell`** — Runs shell commands on the host machine and returns the output (30s timeout).
+- **`web_fetch`** — Fetches a web page and returns clean text with all HTML, JS, and CSS stripped.
+- **`read_file`** — Reads any file. Used to inspect memory, soul, user profile, session diaries, etc.
+- **`edit_file`** — Edits a file by replacing its content. Automatically backs up the existing file to `.bak` and returns the previous content.
+- **`view_skill`** — Reads the instructions for an installed skill.
+- **`compact_history`** — Summarizes the current session into a diary file.
 
 ---
 

@@ -77,7 +77,7 @@ const loadAvailableSkills = () => {
     if (skills.length === 0) return '';
 
     let skillsList = '=== AVAILABLE SKILLS ===\n';
-    skillsList += 'You have access to specialized skill packages. If a task requires it, you MUST use the `viewSkill` tool to read the skill\'s instructions before proceeding.\n\n';
+    skillsList += 'You have access to specialized skill packages. If a task requires it, you MUST use the `view_skill` tool to read the skill\'s instructions before proceeding.\n\n';
 
     for (const skill of skills) {
         skillsList += `- **${skill.name || skill.folder}**: ${skill.description}\n`;

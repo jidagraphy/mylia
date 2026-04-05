@@ -31,8 +31,8 @@ const handler = async ({ filePath, content }) => {
 const declaration = {
     type: "function",
     function: {
-        name: "editFile",
-        description: "Edits a file by replacing its content. Always use readFile first to see the current content before editing. Automatically backs up the existing file to .bak. Relative paths resolve from the workspace root.",
+        name: "edit_file",
+        description: "Edits a file by replacing its content. Always use read_file first to see the current content before editing. Automatically backs up the existing file to .bak. Relative paths resolve from the workspace root.",
         parameters: {
             type: "object",
             properties: {

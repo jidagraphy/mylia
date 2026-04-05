@@ -56,6 +56,29 @@ function setupWorkspaceEnvironment() {
             }
         }
     }
+
+    // Copy default skills from template if not already present
+    const templateSkillsDir = path.join(templateDir, 'Skills');
+    const workspaceSkillsDir = path.join(workspacePath, 'Skills');
+    if (fs.existsSync(templateSkillsDir)) {
+        const skillFolders = fs.readdirSync(templateSkillsDir, { withFileTypes: true })
+            .filter(entry => entry.isDirectory());
+
+        for (const folder of skillFolders) {
+            const targetSkillDir = path.join(workspaceSkillsDir, folder.name);
+            const targetSkillFile = path.join(targetSkillDir, 'SKILL.md');
+
+            if (!fs.existsSync(targetSkillFile)) {
+                const sourceSkillFile = path.join(templateSkillsDir, folder.name, 'SKILL.md');
+                if (fs.existsSync(sourceSkillFile)) {
+                    if (!fs.existsSync(targetSkillDir)) {
+                        fs.mkdirSync(targetSkillDir, { recursive: true });
+                    }
+                    fs.copyFileSync(sourceSkillFile, targetSkillFile);
+                }
+            }
+        }
+    }
 }
 
 module.exports = { getWorkspacePath, setupWorkspaceEnvironment };

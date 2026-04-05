@@ -69,7 +69,7 @@ const handler = async ({ url }) => {
 const declaration = {
     type: "function",
     function: {
-        name: "webFetch",
+        name: "web_fetch",
         description: "Fetches a web page by URL and returns its text content with all HTML, JavaScript, and CSS removed. Use this to read articles, documentation, or any web page content.",
         parameters: {
             type: "object",

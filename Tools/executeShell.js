@@ -13,7 +13,7 @@ const handler = async ({ command }) => {
             }
             
             if (result.length > MAX_LENGTH) {
-                result = result.substring(0, MAX_LENGTH) + '\n\n[...OUTPUT TRUNCATED: The result exceeded the maximum allowed length. DO NOT use curl or wget to fetch websites. Use the webFetch tool instead.]';
+                result = result.substring(0, MAX_LENGTH) + '\n\n[...OUTPUT TRUNCATED: Result exceeded 5000 chars. Constrain output with head, tail, or grep. Do not use curl/wget — use web_fetch instead.]';
             }
             resolve(result);
         });
@@ -23,8 +23,8 @@ const handler = async ({ command }) => {
 const declaration = {
     type: "function",
     function: {
-        name: "executeShell",
-        description: "Executes a bash shell command on the host (Mac) machine and returns the output.",
+        name: "execute_shell",
+        description: "Executes a bash shell command on the host machine and returns the output (30s timeout, 5000 char limit). Never run destructive commands (rm -rf, mv, chmod, mkfs, dd, etc.) without explicit user confirmation. Prefer reversible alternatives (e.g. trash over rm). Keep output small — avoid commands that dump large volumes of text (e.g. cat on big files, find / without limits, unfiltered logs). Use head, tail, or grep to constrain output. Do not use curl or wget to fetch websites — use web_fetch instead.",
         parameters: {
             type: "object",
             properties: {
