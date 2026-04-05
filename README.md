@@ -14,7 +14,7 @@ Heavily inspired by the philosophy of **OpenClaw**, `mylia` focuses on core agen
 ---
 ## Announcements
 
-This is a work in progress project! Currently only openrouter, ollama and Gemini API are supported. (Gemini API is not tested yet!)
+This is a work in progress project! Currently only openrouter, ollama and Gemini API are supported.
 I welcome any feedback and suggestions!
 
 ---
