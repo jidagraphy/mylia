@@ -116,8 +116,9 @@ client.on(Events.MessageCreate, async (message) => {
                     }
 
                     const argsStr = Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : '';
+                    log('Tool', `${tc.function.name}(${argsStr}) ...`);
                     const result = await fn(parsedArgs);
-                    log('Tool', `${tc.function.name}(${argsStr}) → ${String(result).slice(0, 100)}`);
+                    log('Tool', `${tc.function.name} → ${String(result).slice(0, 500)}`);
 
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: result, name: tc.function.name };
                     appendToHistory(toolMsg);
@@ -145,8 +146,8 @@ client.on(Events.MessageCreate, async (message) => {
         if (!response.content?.trim()) {
             logError('Reply', 'Final response empty. Using fallback.');
             const fallback = iterations > 0
-                ? 'I used my tools but wasn\'t able to produce a final answer. Could you try rephrasing your request?'
-                : 'I wasn\'t able to generate a response. This may be a connection issue with the AI provider.';
+                ? '[System] Tool execution completed but the model returned an empty response.'
+                : '[System] Empty response from AI provider. Possible connection or model issue.';
             response = { role: 'assistant', content: fallback };
         }
 

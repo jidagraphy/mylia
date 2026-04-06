@@ -19,10 +19,16 @@ const chat = async (model, systemInstruction, tools, messages) => {
         return out;
     };
 
-    // Filter out empty assistant messages (tool-call-only responses that have no text)
-    // and merge consecutive same-role messages (e.g. user + tool-as-user back-to-back)
+    // Keep assistant turn structure intact for Ollama (user→assistant→user).
+    // Empty assistant messages (tool-call-only) get a placeholder instead of being removed.
+    // Consecutive same-role messages get merged (e.g. user + tool-as-user back-to-back).
     const formatAndFilter = (msgs) => {
-        const formatted = msgs.map(formatMessage).filter(m => m.content.trim() !== '');
+        const formatted = msgs.map(formatMessage).filter(m => m.role === 'assistant' || m.content.trim() !== '');
+        for (const m of formatted) {
+            if (m.role === 'assistant' && !m.content.trim()) {
+                m.content = '(calling tool)';
+            }
+        }
         const merged = [];
         for (const m of formatted) {
             if (merged.length > 0 && merged[merged.length - 1].role === m.role) {

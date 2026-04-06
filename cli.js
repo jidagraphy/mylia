@@ -91,7 +91,7 @@ const start = async () => {
     fs.writeFileSync(PID_FILE, String(child.pid));
     child.unref();
 
-    console.log(`mylia started (PID: ${child.pid})`);
+    console.log(`mylia v${version} started (PID: ${child.pid})`);
     console.log(`Logs: ${LOG_FILE}`);
 };
 
@@ -205,9 +205,11 @@ const installSkill = async (repoUrl) => {
 
 // routers
 
+const version = require('./package.json').version;
+
 const help = () => {
     console.log(`
-  🧚 mylia — CLI
+  🧚 mylia v${version}
 
   Usage:
     mylia start              Start the daemon
