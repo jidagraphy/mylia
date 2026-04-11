@@ -172,7 +172,13 @@ const buildSystemInstruction = (turnContext = {}) => {
         loadAvailableChannels(turnContext.client),
     ].filter(Boolean);
 
-    return sections.join('\n\n');
+    const instruction = sections.join('\n\n');
+
+    try {
+        fs.writeFileSync(path.join(getWorkspacePath(), '.latest_context'), instruction);
+    } catch { /* best-effort debug dump */ }
+
+    return instruction;
 };
 
 module.exports = { buildSystemInstruction };

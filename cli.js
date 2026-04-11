@@ -5,10 +5,10 @@ const fs = require('fs');
 const path = require('path');
 
 const APP_DIR = path.resolve(__dirname);
-const PID_FILE = path.join(require('os').homedir(), '.mylia.pid');
-const LOG_FILE = path.join(require('os').homedir(), '.mylia.log');
 const { getConfig } = require('./Utility/config');
-const { setupWorkspaceEnvironment } = require('./Utility/workspaceSetup');
+const { setupWorkspaceEnvironment, getWorkspacePath } = require('./Utility/workspaceSetup');
+const PID_FILE = path.join(getWorkspacePath(), '.pid');
+const LOG_FILE = path.join(getWorkspacePath(), '.log');
 
 const command = process.argv[2];
 const arg = process.argv[3];
