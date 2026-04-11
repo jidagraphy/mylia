@@ -24,8 +24,8 @@ const client = new Client({
 
 const STARTUP_PROMPT = `A new session has just started. Greet the user in your persona — keep it to 2-3 sentences.`;
 
-const runSessionStartup = async () => {
-    const systemInstruction = buildSystemInstruction();
+const runSessionStartup = async (turnContext = {}) => {
+    const systemInstruction = buildSystemInstruction(turnContext);
     const response = await chat(systemInstruction, toolDeclarations, [{ role: 'user', content: STARTUP_PROMPT }]);
     const greeting = response.content?.trim() || null;
     if (greeting) appendToHistory({ role: 'assistant', content: greeting });
@@ -49,7 +49,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const { previousSessionId } = await checkAndRenewSession(generateSessionDiary, { force: true });
         log('Session', `Force renewed session. Previous: ${previousSessionId}`);
 
-        const greeting = await runSessionStartup() || 'New session started!';
+        const greeting = await runSessionStartup({ interaction, client }) || 'New session started!';
         log('Session', 'Startup greeting sent.');
         await interaction.editReply(greeting);
     }
@@ -72,7 +72,7 @@ client.on(Events.MessageCreate, async (message) => {
         }
 
         const userPrompt = message.content.replace(`<@${client.user.id}>`, '').trim();
-        const systemInstruction = buildSystemInstruction();
+        const systemInstruction = buildSystemInstruction({ message, client });
         const history = getSessionHistoryByTokens(4000); // Sliding window by ~tokens
 
         // Collect image attachments

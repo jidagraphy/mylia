@@ -1,7 +1,9 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { getWorkspacePath } = require('./workspaceSetup');
 const { getInstalledSkills } = require('./skillManager');
+const { getConfig } = require('./config');
 
 const agentMdPath = path.join(getWorkspacePath(), 'agent.md');
 const soulFile = path.join(getWorkspacePath(), 'soul.md');
@@ -86,21 +88,88 @@ const loadAvailableSkills = () => {
     return skillsList.trim();
 };
 
+const loadRuntimeContext = (turnContext = {}) => {
+    const { message, interaction, client } = turnContext;
+    const config = getConfig() || {};
+
+    const lines = ['=== CURRENT CONTEXT ==='];
+
+    const now = new Date();
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    lines.push(`Current time: ${now.toLocaleString()} (${tz})`);
+
+    lines.push(`Host: ${os.hostname()} — ${os.platform()} ${os.release()} (user: ${os.userInfo().username})`);
+
+    if (config.AI_PROVIDER || config.AI_MODEL) {
+        lines.push(`Model: ${config.AI_MODEL || 'unknown'} via ${config.AI_PROVIDER || 'unknown'}`);
+    }
+
+    if (client?.user) {
+        lines.push(`Logged in as: ${client.user.tag} (id: ${client.user.id})`);
+    }
+
+    const source = message || interaction;
+    if (source) {
+        const author = message?.author || interaction?.user;
+        const guild = source.guild;
+        const channel = source.channel;
+        lines.push('');
+        if (guild) {
+            lines.push(`You are responding in channel #${channel?.name || 'unknown'} (id: ${channel?.id})`);
+            lines.push(`Server: ${guild.name} (id: ${guild.id})`);
+            if (author) lines.push(`Speaking with: @${author.username} (id: ${author.id})`);
+        } else if (author) {
+            lines.push(`You are in a direct message with @${author.username} (user id: ${author.id}, dm channel id: ${channel?.id})`);
+        }
+    }
+
+    return lines.join('\n');
+};
+
+const loadAvailableChannels = (client) => {
+    if (!client?.guilds?.cache) return '';
+
+    const guilds = [...client.guilds.cache.values()];
+    if (guilds.length === 0) return '';
+
+    const lines = [
+        '=== AVAILABLE CHANNELS ===',
+        'Channels this bot can currently see across all servers. Reference these by id when you need to target a specific channel.'
+    ];
+
+    for (const guild of guilds) {
+        const textChannels = [...guild.channels.cache.values()]
+            .filter(c => typeof c.isTextBased === 'function' && c.isTextBased());
+        if (textChannels.length === 0) continue;
+        lines.push('');
+        lines.push(`Server: ${guild.name} (id: ${guild.id})`);
+        for (const ch of textChannels) {
+            lines.push(`  - #${ch.name} (id: ${ch.id})`);
+        }
+    }
+
+    return lines.join('\n');
+};
+
 /**
  * agent.md
  * soul.md
  * user.md
  * memory.md
  * recent session diaries
+ * runtime context (current channel/server/user, time, host, model)
+ * available channels (live discord cache)
  */
-const buildSystemInstruction = () => {
+const buildSystemInstruction = (turnContext = {}) => {
     const sections = [
         loadAgentIdentity(),
         loadAvailableSkills(),
         loadSoul(),
         loadUser(),
         loadLongTermMemory(),
-        loadRecentSessionDiaries(2)
+        loadRecentSessionDiaries(2),
+        loadRuntimeContext(turnContext),
+        loadAvailableChannels(turnContext.client),
     ].filter(Boolean);
 
     return sections.join('\n\n');
