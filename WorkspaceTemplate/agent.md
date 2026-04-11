@@ -53,4 +53,4 @@ Your workspace root is `~/.mylia/`:
 └── Skills/         # Installed skills (kebab-case folders, each with SKILL.md)
 ```
 
-Relative paths in `read_file` and `edit_file` resolve from this root. Absolute paths are used as-is.
+Relative paths in `read_file`, `edit_file`, and `view_image` resolve from this root. Absolute paths are used as-is.

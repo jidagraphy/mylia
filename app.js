@@ -117,12 +117,26 @@ client.on(Events.MessageCreate, async (message) => {
 
                     const argsStr = Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : '';
                     log('Tool', `${tc.function.name}(${argsStr}) ...`);
-                    const result = await fn(parsedArgs);
-                    log('Tool', `${tc.function.name} → ${String(result).slice(0, 500)}`);
+                    const rawResult = await fn(parsedArgs);
 
-                    const toolMsg = { role: 'tool', tool_call_id: tc.id, content: result, name: tc.function.name };
+                    // Tool can return { _image, text } to inject a visible image on the next turn
+                    let resultText = rawResult;
+                    let pendingImage = null;
+                    if (rawResult && typeof rawResult === 'object' && rawResult._image) {
+                        pendingImage = rawResult._image;
+                        resultText = rawResult.text || 'Image loaded.';
+                    }
+                    log('Tool', `${tc.function.name} → ${String(resultText).slice(0, 500)}`);
+
+                    const toolMsg = { role: 'tool', tool_call_id: tc.id, content: resultText, name: tc.function.name };
                     appendToHistory(toolMsg);
                     context.push(toolMsg);
+
+                    if (pendingImage) {
+                        // Inject the image as a user message so the model can see it next turn.
+                        // Not persisted to history to avoid bloat.
+                        context.push({ role: 'user', content: '[Attached image from view_image tool]', images: [pendingImage] });
+                    }
                 } else {
                     logError('Tool', `Not found: ${tc.function.name}`);
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: 'Tool not found', name: tc.function.name };

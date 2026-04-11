@@ -159,10 +159,11 @@ mylia install-skill <github-repo-url>
 
 ## Tools
 
-- **`execute_shell`** — Runs shell commands on the host machine and returns the output (30s timeout).
+- **`execute_shell`** — Runs shell commands on the host machine and returns the output (30s timeout). Commands run from the user's home directory (`~`) by default.
 - **`web_fetch`** — Fetches a web page and returns clean text with all HTML, JS, and CSS stripped.
 - **`read_file`** — Reads any file. Used to inspect memory, soul, user profile, session diaries, etc.
 - **`edit_file`** — Edits a file by replacing its content. Automatically backs up the existing file to `.bak` and returns the previous content.
+- **`view_image`** — Loads an image file from disk (png, jpg, gif, webp, bmp, heic) and attaches it to the next turn so a vision-capable model can see it. Pairs well with `execute_shell screencapture` for on-screen inspection.
 - **`view_skill`** — Reads the instructions for an installed skill.
 - **`compact_history`** — Summarizes the current session into a diary file.
 
