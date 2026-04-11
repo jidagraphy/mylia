@@ -94,7 +94,7 @@ client.on(Events.MessageCreate, async (message) => {
 
         const pendingAttachments = [];
         let iterations = 0;
-        const maxIterations = 5;
+        const maxIterations = 10;
 
         // agentic loop
         while (response.tool_calls?.length > 0 && iterations < maxIterations) {
