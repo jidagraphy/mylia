@@ -89,7 +89,7 @@ const loadAvailableSkills = () => {
 };
 
 const loadRuntimeContext = (turnContext = {}) => {
-    const { message, interaction, client } = turnContext;
+    const { channel, client, actor, trigger } = turnContext;
     const config = getConfig() || {};
 
     const lines = ['=== CURRENT CONTEXT ==='];
@@ -108,18 +108,28 @@ const loadRuntimeContext = (turnContext = {}) => {
         lines.push(`Logged in as: ${client.user.tag} (id: ${client.user.id})`);
     }
 
-    const source = message || interaction;
-    if (source) {
-        const author = message?.author || interaction?.user;
-        const guild = source.guild;
-        const channel = source.channel;
+    if (channel) {
+        const guild = channel.guild;
         lines.push('');
         if (guild) {
-            lines.push(`You are responding in channel #${channel?.name || 'unknown'} (id: ${channel?.id})`);
+            lines.push(`You are responding in channel #${channel.name || 'unknown'} (id: ${channel.id})`);
             lines.push(`Server: ${guild.name} (id: ${guild.id})`);
-            if (author) lines.push(`Speaking with: @${author.username} (id: ${author.id})`);
-        } else if (author) {
-            lines.push(`You are in a direct message with @${author.username} (user id: ${author.id}, dm channel id: ${channel?.id})`);
+            if (actor) lines.push(`Speaking with: @${actor.username} (id: ${actor.id})`);
+        } else if (actor) {
+            lines.push(`You are in a direct message with @${actor.username} (user id: ${actor.id}, dm channel id: ${channel.id})`);
+        } else {
+            lines.push(`Target channel: ${channel.name ? '#' + channel.name : 'DM'} (id: ${channel.id})`);
+        }
+    }
+
+    if (trigger && trigger !== 'message') {
+        lines.push('');
+        if (trigger === 'cron') {
+            lines.push('This turn was triggered by a scheduled cron task (no live user). Respond as if completing the scheduled task.');
+        } else if (trigger === 'slash_command') {
+            lines.push('This turn was triggered by a slash command.');
+        } else {
+            lines.push(`This turn was triggered by: ${trigger}`);
         }
     }
 
