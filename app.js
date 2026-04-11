@@ -11,6 +11,7 @@ const { toolDeclarations } = require('./Tools');
 const { log, error: logError } = require('./Utility/logger');
 const { runAgentTurn } = require('./Utility/agentRunner');
 const { setClient } = require('./Utility/discordClient');
+const { startCronRunner } = require('./Utility/cronRunner');
 
 setupWorkspaceEnvironment();
 
@@ -42,6 +43,8 @@ client.once(Events.ClientReady, async (c) => {
         { name: 'new', description: 'Start a new session (saves current session diary)' },
     ]);
     log('Bot', 'Slash commands registered.');
+
+    startCronRunner(c);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {

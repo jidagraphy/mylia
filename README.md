@@ -106,6 +106,8 @@ Once the bot is running and invited to your server, the following slash commands
 - **`memory.md`**: Persistent long term memory facts.
 - **`soul.md`**: Core personality and tone definition.
 - **`user.md`**: Profile data concerning the primary user.
+- **`crons.json`**: Scheduled cron entries (auto-created by the `create_cron` tool).
+- **`.latest_context`**: Debug dump of the last built system prompt. Open to see exactly what the AI is seeing.
 - **`Memory/`**: Stores auto-generated session diaries summarizing past conversations.
 - **`Sessions/`**: Active connection states.
 - **`Skills/`**: Installed skill packages. Each subfolder contains a `SKILL.md` with instructions the agent follows.
@@ -167,6 +169,9 @@ mylia install-skill <github-repo-url>
 - **`send_attachment`** — Queues a local file or image (up to 25MB) to be attached to the agent's next Discord reply. Can be called multiple times in one turn to send multiple files together.
 - **`view_skill`** — Reads the instructions for an installed skill.
 - **`compact_history`** — Summarizes the current session into a diary file.
+- **`create_cron`** — Schedules a prompt to run through the agent at a specific time or on a recurring schedule, with the reply delivered to a chosen Discord channel. Accepts either a 5-field cron expression (`0 9 * * *`) or an ISO 8601 timestamp for one-shot schedules. Optional IANA timezone.
+- **`list_crons`** — Lists all scheduled cron entries with their schedule, target channel, prompt, and next computed fire time.
+- **`delete_cron`** — Deletes a scheduled cron entry by id.
 
 ---
 
