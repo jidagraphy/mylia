@@ -92,6 +92,7 @@ client.on(Events.MessageCreate, async (message) => {
         let response = await chat(systemInstruction, toolDeclarations, context);
         appendToHistory({ role: 'user', content: userPrompt }); // images not persisted to avoid history bloat
 
+        const pendingAttachments = [];
         let iterations = 0;
         const maxIterations = 5;
 
@@ -125,6 +126,10 @@ client.on(Events.MessageCreate, async (message) => {
                     if (rawResult && typeof rawResult === 'object' && rawResult._image) {
                         pendingImage = rawResult._image;
                         resultText = rawResult.text || 'Image loaded.';
+                    }
+                    if (rawResult && typeof rawResult === 'object' && rawResult._attachment) {
+                        pendingAttachments.push(rawResult._attachment);
+                        resultText = rawResult.text || 'Attachment queued.';
                     }
                     log('Tool', `${tc.function.name} → ${String(resultText).slice(0, 500)}`);
 
@@ -188,7 +193,10 @@ client.on(Events.MessageCreate, async (message) => {
         }
 
         // await message.reply(chunks[0]);
-        await message.channel.send(chunks[0]);
+        const firstMessage = pendingAttachments.length > 0
+            ? { content: chunks[0], files: pendingAttachments.map(a => ({ attachment: a.filePath, name: a.name })) }
+            : chunks[0];
+        await message.channel.send(firstMessage);
         for (let i = 1; i < chunks.length; i++) {
             await message.channel.send(chunks[i]);
         }

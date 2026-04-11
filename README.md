@@ -164,6 +164,7 @@ mylia install-skill <github-repo-url>
 - **`read_file`** — Reads any file. Used to inspect memory, soul, user profile, session diaries, etc.
 - **`edit_file`** — Edits a file by replacing its content. Automatically backs up the existing file to `.bak` and returns the previous content.
 - **`view_image`** — Loads an image file from disk (png, jpg, gif, webp, bmp, heic) and attaches it to the next turn so a vision-capable model can see it. Pairs well with `execute_shell screencapture` for on-screen inspection.
+- **`send_attachment`** — Queues a local file or image (up to 25MB) to be attached to the agent's next Discord reply. Can be called multiple times in one turn to send multiple files together.
 - **`view_skill`** — Reads the instructions for an installed skill.
 - **`compact_history`** — Summarizes the current session into a diary file.
 
