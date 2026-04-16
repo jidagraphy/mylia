@@ -75,7 +75,17 @@ const chat = async (model, systemInstruction, tools, messages) => {
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    const contents = messages.map(toGeminiContent);
+    // Convert and merge consecutive same-role turns (Gemini requires strict alternation)
+    const rawContents = messages.map(toGeminiContent);
+    const contents = [];
+    for (const c of rawContents) {
+        const prev = contents[contents.length - 1];
+        if (prev && prev.role === c.role) {
+            prev.parts.push(...c.parts);
+        } else {
+            contents.push(c);
+        }
+    }
 
     const payload = {
         systemInstruction: { parts: [{ text: systemInstruction }] },
