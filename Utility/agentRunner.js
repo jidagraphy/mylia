@@ -104,11 +104,13 @@ const runAgentTurn = async ({
                     log('Tool', `${tc.function.name} → ${String(resultText).slice(0, 500)}`);
 
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: resultText, name: tc.function.name };
-                    if (pendingImage) {
-                        toolMsg.images = [pendingImage];
-                    }
                     appendToHistory(toolMsg, contextKey);
                     context.push(toolMsg);
+
+                    if (pendingImage) {
+                        context.push({ role: 'assistant', content: resultText });
+                        context.push({ role: 'user', content: 'Here is the image:', images: [pendingImage] });
+                    }
                 } else {
                     logError('Tool', `Not found: ${tc.function.name}`);
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: 'Tool not found', name: tc.function.name };
