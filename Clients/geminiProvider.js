@@ -117,7 +117,7 @@ const chat = async (model, systemInstruction, tools, messages) => {
 
         const candidate = data.candidates?.[0];
         if (!candidate) {
-            console.error('[GeminiProvider] No candidate. Response:', JSON.stringify(data).slice(0, 500));
+            console.log('[GeminiProvider] No candidate. Response:', JSON.stringify(data).slice(0, 500));
             return result;
         }
 
