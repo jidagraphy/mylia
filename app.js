@@ -6,7 +6,7 @@ const { chat } = require('./Clients/provider');
 const { appendToHistory } = require('./Utility/historyStore');
 const { buildSystemInstruction } = require('./Utility/contextBuilder');
 const { generateSessionDiary } = require('./Tools/compactHistory');
-const { checkAndRenewSession } = require('./Utility/sessionManager');
+const { checkAndRenewSession, getContextKey } = require('./Utility/sessionManager');
 const { toolDeclarations } = require('./Tools');
 const { log, error: logError } = require('./Utility/logger');
 const { runAgentTurn } = require('./Utility/agentRunner');
@@ -28,10 +28,11 @@ const client = new Client({
 const STARTUP_PROMPT = `A new session has just started. Greet the user in your persona — keep it to 2-3 sentences.`;
 
 const runSessionStartup = async ({ channel, actor } = {}) => {
+    const contextKey = getContextKey(channel, actor);
     const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger: 'slash_command' });
     const response = await chat(systemInstruction, toolDeclarations, [{ role: 'user', content: STARTUP_PROMPT }]);
     const greeting = response.content?.trim() || null;
-    if (greeting) appendToHistory({ role: 'assistant', content: greeting });
+    if (greeting) appendToHistory({ role: 'assistant', content: greeting }, contextKey);
     return greeting;
 };
 
@@ -52,8 +53,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     if (interaction.commandName === 'new') {
         await interaction.deferReply();
-        const { previousSessionId } = await checkAndRenewSession(generateSessionDiary, { force: true });
-        log('Session', `Force renewed session. Previous: ${previousSessionId}`);
+        const contextKey = getContextKey(interaction.channel, interaction.user);
+        const { previousSessionId } = await checkAndRenewSession(contextKey, generateSessionDiary, { force: true });
+        log('Session', `Force renewed session for ${contextKey}. Previous: ${previousSessionId}`);
 
         const greeting = await runSessionStartup({ channel: interaction.channel, actor: interaction.user }) || 'New session started!';
         log('Session', 'Startup greeting sent.');

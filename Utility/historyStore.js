@@ -5,26 +5,32 @@ const { getWorkspacePath } = require('./workspaceSetup');
 
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
 
-const getHistoryPath = () => path.join(chatHistoryDir, getSessionFilename());
+const getHistoryPath = (contextKey) => {
+    const filename = getSessionFilename(contextKey);
+    if (!filename) return null;
+    return path.join(chatHistoryDir, filename);
+};
 const ensureDir = () => {
     if (!fs.existsSync(chatHistoryDir)) {
         fs.mkdirSync(chatHistoryDir, { recursive: true });
     }
 };
 
-const appendToHistory = (message) => {
+const appendToHistory = (message, contextKey) => {
     ensureDir();
+    const filePath = getHistoryPath(contextKey);
+    if (!filePath) return;
     try {
         const entry = { ...message, timestamp: new Date().toISOString() };
-        fs.appendFileSync(getHistoryPath(), JSON.stringify(entry) + '\n');
+        fs.appendFileSync(filePath, JSON.stringify(entry) + '\n');
     } catch (error) {
         console.error('Failed to append to history:', error);
     }
 };
 
-const getSessionHistory = () => {
-    const filePath = getHistoryPath();
-    if (!fs.existsSync(filePath)) return [];
+const getSessionHistory = (contextKey) => {
+    const filePath = getHistoryPath(contextKey);
+    if (!filePath || !fs.existsSync(filePath)) return [];
 
     try {
         const data = fs.readFileSync(filePath, 'utf8');
@@ -103,8 +109,8 @@ const estimateGroupTokens = (group) => {
     return tokens;
 };
 
-const getSessionHistoryByTokens = (maxTokens = 4000) => {
-    const fullHistory = getSessionHistory();
+const getSessionHistoryByTokens = (maxTokens = 4000, contextKey) => {
+    const fullHistory = getSessionHistory(contextKey);
     if (fullHistory.length === 0) return [];
 
     const groups = groupMessages(fullHistory);

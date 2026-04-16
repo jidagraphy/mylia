@@ -2,7 +2,7 @@ const { chat } = require('../Clients/provider');
 const { appendToHistory, getSessionHistoryByTokens } = require('./historyStore');
 const { buildSystemInstruction } = require('./contextBuilder');
 const { generateSessionDiary } = require('../Tools/compactHistory');
-const { checkAndRenewSession } = require('./sessionManager');
+const { checkAndRenewSession, getContextKey } = require('./sessionManager');
 const { availableTools, toolDeclarations } = require('../Tools');
 const { log, error: logError } = require('./logger');
 
@@ -43,13 +43,14 @@ const runAgentTurn = async ({
             }, 8000);
         }
 
-        const { renewed } = await checkAndRenewSession(generateSessionDiary);
+        const contextKey = getContextKey(channel, actor);
+        const { renewed } = await checkAndRenewSession(contextKey, generateSessionDiary);
         if (renewed) {
-            log('Session', 'Implicitly renewed session due to inactivity.');
+            log('Session', `Implicitly renewed session for ${contextKey} due to inactivity.`);
         }
 
         const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger });
-        const history = getSessionHistoryByTokens(4000);
+        const history = getSessionHistoryByTokens(4000, contextKey);
 
         const currentMessage = { role: 'user', content: prompt };
         if (images.length > 0) currentMessage.images = images;
@@ -59,7 +60,7 @@ const runAgentTurn = async ({
 
         const context = [...history, currentMessage];
         let response = await chat(systemInstruction, toolDeclarations, context);
-        appendToHistory({ role: 'user', content: prompt });
+        appendToHistory({ role: 'user', content: prompt }, contextKey);
 
         const pendingAttachments = [];
         let iterations = 0;
@@ -67,7 +68,7 @@ const runAgentTurn = async ({
         while (response.tool_calls?.length > 0 && iterations < MAX_ITERATIONS) {
             iterations++;
 
-            appendToHistory(response);
+            appendToHistory(response, contextKey);
             context.push(response);
 
             for (const tc of response.tool_calls) {
@@ -83,7 +84,10 @@ const runAgentTurn = async ({
                         }
                     }
 
-                    const argsStr = Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : '';
+                    parsedArgs._contextKey = contextKey;
+                    const argsStr = Object.keys(parsedArgs).filter(k => k !== '_contextKey').length > 0
+                        ? JSON.stringify(Object.fromEntries(Object.entries(parsedArgs).filter(([k]) => k !== '_contextKey')))
+                        : '';
                     log('Tool', `${tc.function.name}(${argsStr}) ...`);
                     const rawResult = await fn(parsedArgs);
 
@@ -100,7 +104,7 @@ const runAgentTurn = async ({
                     log('Tool', `${tc.function.name} → ${String(resultText).slice(0, 500)}`);
 
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: resultText, name: tc.function.name };
-                    appendToHistory(toolMsg);
+                    appendToHistory(toolMsg, contextKey);
                     context.push(toolMsg);
 
                     if (pendingImage) {
@@ -109,7 +113,7 @@ const runAgentTurn = async ({
                 } else {
                     logError('Tool', `Not found: ${tc.function.name}`);
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: 'Tool not found', name: tc.function.name };
-                    appendToHistory(toolMsg);
+                    appendToHistory(toolMsg, contextKey);
                     context.push(toolMsg);
                 }
             }
@@ -135,7 +139,7 @@ const runAgentTurn = async ({
 
         const answer = response.content;
         log('Reply', answer);
-        appendToHistory({ role: 'assistant', content: answer });
+        appendToHistory({ role: 'assistant', content: answer }, contextKey);
 
         if (typingInterval) clearInterval(typingInterval);
 

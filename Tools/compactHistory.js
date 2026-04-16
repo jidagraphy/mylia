@@ -51,12 +51,13 @@ Summarize as 5-10 bullet points covering: user requests, decisions made, prefere
     }
 };
 
-const handler = async () => {
-    const currentSessionId = getSessionId();
+const handler = async ({ _contextKey } = {}) => {
+    if (!_contextKey) return 'No context key available — cannot determine which session to compact.';
+    const currentSessionId = getSessionId(_contextKey);
     if (!currentSessionId) return 'No active session to compact.';
 
     const resultMessage = await generateSessionDiary(currentSessionId);
-    startSession();
+    startSession(_contextKey);
 
     return resultMessage;
 };
