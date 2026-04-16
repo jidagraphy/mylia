@@ -9,7 +9,9 @@ const chat = async (model, systemInstruction, tools, messages) => {
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
             // Convert tool results to user messages for Ollama compatibility
-            return { role: 'user', content: `[Tool Result: ${msg.name || 'unknown'}]\n${msg.content || ''}` };
+            const out = { role: 'user', content: `[Tool Result: ${msg.name || 'unknown'}]\n${msg.content || ''}` };
+            if (msg.images?.length > 0) out.images = msg.images.map(img => img.data);
+            return out;
         }
         if (msg.role === 'assistant') {
             return { role: 'assistant', content: msg.content || '' };
@@ -33,6 +35,9 @@ const chat = async (model, systemInstruction, tools, messages) => {
         for (const m of formatted) {
             if (merged.length > 0 && merged[merged.length - 1].role === m.role) {
                 merged[merged.length - 1].content += '\n\n' + m.content;
+                if (m.images?.length > 0) {
+                    merged[merged.length - 1].images = [...(merged[merged.length - 1].images || []), ...m.images];
+                }
             } else {
                 merged.push({ ...m });
             }
@@ -96,6 +101,9 @@ const chat = async (model, systemInstruction, tools, messages) => {
         }
     } catch (error) {
         console.error('[OllamaProvider] Fetch error:', error);
+        if (!result.content && result.tool_calls.length === 0) {
+            result.content = `I ran into a connection issue. (${error.message})`;
+        }
     }
 
     return result;

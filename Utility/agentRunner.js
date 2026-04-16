@@ -104,12 +104,11 @@ const runAgentTurn = async ({
                     log('Tool', `${tc.function.name} → ${String(resultText).slice(0, 500)}`);
 
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: resultText, name: tc.function.name };
+                    if (pendingImage) {
+                        toolMsg.images = [pendingImage];
+                    }
                     appendToHistory(toolMsg, contextKey);
                     context.push(toolMsg);
-
-                    if (pendingImage) {
-                        context.push({ role: 'user', content: '[Attached image from view_image tool]', images: [pendingImage] });
-                    }
                 } else {
                     logError('Tool', `Not found: ${tc.function.name}`);
                     const toolMsg = { role: 'tool', tool_call_id: tc.id, content: 'Tool not found', name: tc.function.name };
@@ -119,22 +118,20 @@ const runAgentTurn = async ({
             }
 
             if (iterations === MAX_ITERATIONS) {
-                context.push({ role: 'user', content: 'You have reached the maximum number of tool attempts. Please provide a final text response summarizing what you found.' });
+                context.push({ role: 'user', content: 'You have reached the maximum number of tool attempts. Please provide a final text response summarizing what you have done so far.' });
             }
 
-            response = await chat(systemInstruction, toolDeclarations, context);
+            response = await chat(systemInstruction, iterations === MAX_ITERATIONS ? [] : toolDeclarations, context);
         }
 
-        if (response.tool_calls?.length > 0 && iterations >= MAX_ITERATIONS) {
-            log('Tool', `Reached max iterations (${MAX_ITERATIONS}). Stopping.`);
+        if (!response.content?.trim() && iterations > 0) {
+            log('Reply', 'Response empty after tool use. Retrying without tools.');
+            response = await chat(systemInstruction, [], context);
         }
 
         if (!response.content?.trim()) {
             logError('Reply', 'Final response empty. Using fallback.');
-            const fallback = iterations > 0
-                ? '[System] Tool execution completed but the model returned an empty response.'
-                : '[System] Empty response from AI provider. Possible connection or model issue.';
-            response = { role: 'assistant', content: fallback };
+            response = { role: 'assistant', content: '[System] Empty response from AI provider.' };
         }
 
         const answer = response.content;

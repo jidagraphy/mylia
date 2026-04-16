@@ -7,7 +7,16 @@ const OPENROUTER_API_KEY = getConfig()?.OPENROUTER_API_KEY;
 const chat = async (model, systemInstruction, tools, messages) => {
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
-            return { role: 'tool', tool_call_id: msg.tool_call_id || 'unknown', content: msg.content || '', name: msg.name || 'unknown_tool' };
+            const toolMsg = { role: 'tool', tool_call_id: msg.tool_call_id || 'unknown', content: msg.content || '', name: msg.name || 'unknown_tool' };
+            if (msg.images?.length > 0) {
+                // OpenAI format doesn't support images in tool results — return tool msg + user msg with image
+                const parts = [{ type: 'text', text: '[Attached image from tool result]' }];
+                for (const img of msg.images) {
+                    parts.push({ type: 'image_url', image_url: { url: `data:${img.mimeType};base64,${img.data}` } });
+                }
+                return [toolMsg, { role: 'user', content: parts }];
+            }
+            return toolMsg;
         }
         if (msg.role === 'assistant') {
             const out = { role: 'assistant', content: msg.content || '' };
@@ -33,7 +42,7 @@ const chat = async (model, systemInstruction, tools, messages) => {
 
     messages = [
         { role: 'system', content: systemInstruction },
-        ...messages.map(formatMessage)
+        ...messages.map(formatMessage).flat()
     ];
 
     const payload = { model, messages, stream: true };
@@ -119,6 +128,9 @@ const chat = async (model, systemInstruction, tools, messages) => {
 
     } catch (error) {
         console.error('\n[OpenRouterProvider] Fetch error:', error);
+        if (!result.content && result.tool_calls.length === 0) {
+            result.content = `I ran into a connection issue. (${error.message})`;
+        }
     }
 
     return result;

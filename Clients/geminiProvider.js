@@ -6,10 +6,13 @@ const toGeminiContent = (msg) => {
         return { role: 'model', parts: msg._rawParts };
     }
     if (msg.role === 'tool') {
-        return {
-            role: 'user', // Gemini function responses are sent as 'user'
-            parts: [{ functionResponse: { name: msg.name, response: { result: msg.content } } }]
-        };
+        const parts = [{ functionResponse: { name: msg.name, response: { result: msg.content } } }];
+        if (msg.images?.length > 0) {
+            for (const img of msg.images) {
+                parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
+            }
+        }
+        return { role: 'user', parts };
     }
     const parts = [];
     if (msg.content) parts.push({ text: msg.content });
@@ -132,6 +135,9 @@ const chat = async (model, systemInstruction, tools, messages) => {
         }
     } catch (error) {
         console.error('[GeminiProvider] Fetch error:', error);
+        if (!result.content && result.tool_calls.length === 0) {
+            result.content = `I ran into a connection issue. (${error.message})`;
+        }
     }
 
     return result;
