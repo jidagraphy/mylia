@@ -42,7 +42,27 @@ The framework is built around efficiently achieving a few fundemental capabiliti
 4. Under **Bot > Privileged Gateway Intents**, turn **on** "Message Content Intent".
 5. Go to **OAuth2 > URL Generator**, select the `bot` scope, and invite the bot to your server.
 
-### 2. Install mylia
+### 2. Choose an AI Provider
+
+mylia supports three providers. Pick one and grab an API key:
+
+| Provider | Where to get a key | Notes |
+|----------|-------------------|-------|
+| **Gemini** | [aistudio.google.com](https://aistudio.google.com/app/apikey) | Google's native API. Generous free tier, including free access to Gemma models. |
+| **OpenRouter** | [openrouter.ai/keys](https://openrouter.ai/keys) | Unified gateway to many models. Some are free, others paid. |
+| **Ollama** | Run locally — [ollama.com](https://ollama.com) | No API key, no cost. Needs a capable machine. |
+
+**Recommended model: Gemma 4 31B (instruction-tuned).** It's basically free and handles general chat, fact lookup, and light coding well. Example model strings per provider:
+
+| `AI_PROVIDER` | `AI_MODEL` |
+|---------------|------------|
+| `gemini` | `gemma-4-31b-it` |
+| `openrouter` | `google/gemma-4-31b-it:free` |
+| `ollama` | `gemma4:31b` |
+
+Of course you can use any other model the provider supports — set it in `config.json` after install.
+
+### 3. Install mylia
 
 ```bash
 npm install -g @jidagraphy/mylia
@@ -50,7 +70,7 @@ npm install -g @jidagraphy/mylia
 
 On first run it creates a workspace at `~/.mylia/` with default config and templates.
 
-### 3. Configure
+### 4. Configure
 
 ```bash
 mylia config
@@ -58,7 +78,7 @@ mylia config
 
 Set your `DISCORD_BOT_TOKEN` (from step 1) and your AI provider's API key. You can also edit `~/.mylia/config.json` directly.
 
-### 4. Run
+### 5. Run
 
 ```bash
 mylia start               # Start as background daemon
