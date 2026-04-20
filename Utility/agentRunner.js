@@ -1,5 +1,5 @@
 const { chat } = require('../Clients/provider');
-const { appendToHistory, getSessionHistoryByTokens } = require('./historyStore');
+const { appendToHistory, getSessionHistoryByChars } = require('./historyStore');
 const { buildSystemInstruction } = require('./contextBuilder');
 const { generateSessionDiary } = require('../Tools/compactHistory');
 const { checkAndRenewSession, getContextKey } = require('./sessionManager');
@@ -7,6 +7,7 @@ const { availableTools, toolDeclarations } = require('../Tools');
 const { log, error: logError } = require('./logger');
 
 const MAX_ITERATIONS = 10;
+const HISTORY_CHAR_BUDGET = 50000;
 
 const chunkReply = (answer) => {
     const chunks = [];
@@ -50,7 +51,7 @@ const runAgentTurn = async ({
         }
 
         const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger });
-        const history = getSessionHistoryByTokens(4000, contextKey);
+        const history = getSessionHistoryByChars(HISTORY_CHAR_BUDGET, contextKey);
 
         const currentMessage = { role: 'user', content: prompt };
         if (images.length > 0) currentMessage.images = images;

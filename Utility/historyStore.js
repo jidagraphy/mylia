@@ -4,6 +4,7 @@ const { getSessionFilename } = require('./sessionManager');
 const { getWorkspacePath } = require('./workspaceSetup');
 
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
+const TOOL_RESULT_REPLAY_MAX = 15000;
 
 const getHistoryPath = (contextKey) => {
     const filename = getSessionFilename(contextKey);
@@ -40,11 +41,6 @@ const getSessionHistory = (contextKey) => {
         console.error('Failed to read session history:', error);
         return [];
     }
-};
-
-const estimateTokens = (text) => {
-    if (!text) return 0;
-    return Math.ceil(text.length / 4);
 };
 
 /**
@@ -99,30 +95,43 @@ const groupMessages = (messages) => {
     return groups;
 };
 
-const estimateGroupTokens = (group) => {
-    let tokens = 0;
+const groupCharLength = (group) => {
+    let chars = 0;
     for (const msg of group) {
         const contentStr = msg.content || '';
         const toolStr = msg.tool_calls ? JSON.stringify(msg.tool_calls) : '';
-        tokens += estimateTokens(contentStr) + estimateTokens(toolStr) + 10;
+        chars += contentStr.length + toolStr.length + 10;
     }
-    return tokens;
+    return chars;
 };
 
-const getSessionHistoryByTokens = (maxTokens = 4000, contextKey) => {
+const truncateOversizedToolResults = (messages, sessionFilePath) => {
+    return messages.map((msg) => {
+        if (msg.role !== 'tool') return msg;
+        const content = msg.content || '';
+        if (content.length <= TOOL_RESULT_REPLAY_MAX) return msg;
+        const stub = `[tool result truncated on replay: ${content.length} chars. Raw result preserved in session log at ${sessionFilePath}, tool_call_id "${msg.tool_call_id}".]`;
+        return { ...msg, content: stub };
+    });
+};
+
+const getSessionHistoryByChars = (maxChars = 30000, contextKey) => {
     const fullHistory = getSessionHistory(contextKey);
     if (fullHistory.length === 0) return [];
 
-    const groups = groupMessages(fullHistory);
-    let currentTokens = 0;
+    const sessionFilePath = getHistoryPath(contextKey);
+    const replayHistory = truncateOversizedToolResults(fullHistory, sessionFilePath);
+
+    const groups = groupMessages(replayHistory);
+    let currentChars = 0;
     const selectedGroups = [];
 
     for (let i = groups.length - 1; i >= 0; i--) {
-        const groupTokens = estimateGroupTokens(groups[i]);
+        const groupChars = groupCharLength(groups[i]);
 
-        if (currentTokens + groupTokens > maxTokens) break;
+        if (currentChars + groupChars > maxChars) break;
 
-        currentTokens += groupTokens;
+        currentChars += groupChars;
         selectedGroups.unshift(groups[i]);
     }
 
@@ -146,6 +155,6 @@ const getFullHistory = (sessionId) => {
 module.exports = {
     appendToHistory,
     getSessionHistory,
-    getSessionHistoryByTokens,
+    getSessionHistoryByChars,
     getFullHistory,
 };
