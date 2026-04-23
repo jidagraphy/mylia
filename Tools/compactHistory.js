@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { complete } = require('../Clients/provider');
 const { getFullHistory } = require('../Utility/historyStore');
-const { getSessionId, startSession } = require('../Utility/sessionManager');
+const { getSessionId, checkAndRenewSession } = require('../Utility/sessionManager');
 
 const { getWorkspacePath } = require('../Utility/workspaceSetup');
 
@@ -57,7 +57,7 @@ const handler = async ({ _contextKey } = {}) => {
     if (!currentSessionId) return 'No active session to compact.';
 
     const resultMessage = await generateSessionDiary(currentSessionId);
-    startSession(_contextKey);
+    await checkAndRenewSession(_contextKey, generateSessionDiary, { force: true });
 
     return resultMessage;
 };

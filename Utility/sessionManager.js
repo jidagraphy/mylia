@@ -27,9 +27,11 @@ const getNextSessionNumber = (date, contextKey) => {
     ensureDir();
     const prefix = `${date}_`;
     const suffix = `_${contextKey}.jsonl`;
-    const files = fs.readdirSync(chatHistoryDir)
-        .filter(f => f.startsWith(prefix) && f.endsWith(suffix));
-    return files.length + 1;
+    const nums = fs.readdirSync(chatHistoryDir)
+        .filter(f => f.startsWith(prefix) && f.endsWith(suffix))
+        .map(f => parseInt(f.slice(prefix.length, prefix.length + 3), 10))
+        .filter(n => Number.isFinite(n));
+    return (nums.length ? Math.max(...nums) : 0) + 1;
 };
 
 const generateSessionId = (contextKey) => {
