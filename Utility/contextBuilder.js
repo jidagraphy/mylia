@@ -4,6 +4,10 @@ const path = require('path');
 const { getWorkspacePath } = require('./workspaceSetup');
 const { getInstalledSkills } = require('./skillManager');
 const { getConfig } = require('./config');
+const { getReplaySize, HISTORY_CHAR_BUDGET } = require('./historyStore');
+
+const ADVISORY_THRESHOLD_RATIO = 0.7;
+const ADVISORY_THRESHOLD = HISTORY_CHAR_BUDGET * ADVISORY_THRESHOLD_RATIO;
 
 const agentMdPath = path.join(getWorkspacePath(), 'agent.md');
 const soulFile = path.join(getWorkspacePath(), 'soul.md');
@@ -46,11 +50,12 @@ const loadLongTermMemory = () => {
     }
 };
 
-const loadRecentSessionDiaries = (count = 2) => {
+const loadRecentSessionDiaries = (count = 2, contextKey = null) => {
     if (!fs.existsSync(memoryDir)) return '';
 
+    const suffix = contextKey ? `_${contextKey}.md` : '.md';
     const files = fs.readdirSync(memoryDir)
-        .filter(f => f.endsWith('.md'))
+        .filter(f => f.endsWith(suffix))
         .sort((a, b) => b.localeCompare(a))
         .slice(0, count)
         .reverse();
@@ -74,6 +79,17 @@ const loadRecentSessionDiaries = (count = 2) => {
     return '';
 };
 
+const loadContextPressureAdvisory = (contextKey, trigger) => {
+    if (!contextKey) return '';
+    if (trigger === 'cron') return '';
+
+    const replayChars = getReplaySize(contextKey);
+    if (replayChars < ADVISORY_THRESHOLD) return '';
+
+    const k = Math.round(replayChars / 1000);
+    return `=== CONTEXT PRESSURE ===\nThis conversation has grown long (~${k}k chars of replay). At a convenient moment, let the user know and ask if they'd like to wrap up and save the chat. Only call \`compact_history\` if they agree.`;
+};
+
 const loadAvailableSkills = () => {
     const skills = getInstalledSkills();
     if (skills.length === 0) return '';
@@ -89,7 +105,7 @@ const loadAvailableSkills = () => {
 };
 
 const loadRuntimeContext = (turnContext = {}) => {
-    const { channel, client, actor, trigger } = turnContext;
+    const { channel, client, actor, trigger, contextKey } = turnContext;
     const config = getConfig() || {};
 
     const lines = ['=== CURRENT CONTEXT ==='];
@@ -102,6 +118,12 @@ const loadRuntimeContext = (turnContext = {}) => {
 
     if (config.AI_PROVIDER || config.AI_MODEL) {
         lines.push(`Model: ${config.AI_MODEL || 'unknown'} via ${config.AI_PROVIDER || 'unknown'}`);
+    }
+
+    if (contextKey) {
+        const replayK = Math.round(getReplaySize(contextKey) / 1000);
+        const budgetK = Math.round(HISTORY_CHAR_BUDGET / 1000);
+        lines.push(`Replay: ~${replayK}k / ${budgetK}k chars of history budget`);
     }
 
     if (client?.user) {
@@ -171,13 +193,15 @@ const loadAvailableChannels = (client) => {
  * available channels (live discord cache)
  */
 const buildSystemInstruction = (turnContext = {}) => {
+    const { contextKey, trigger } = turnContext;
     const sections = [
         loadAgentIdentity(),
         loadAvailableSkills(),
         loadSoul(),
         loadUser(),
         loadLongTermMemory(),
-        loadRecentSessionDiaries(2),
+        loadRecentSessionDiaries(2, contextKey),
+        loadContextPressureAdvisory(contextKey, trigger),
         loadRuntimeContext(turnContext),
         loadAvailableChannels(turnContext.client),
     ].filter(Boolean);

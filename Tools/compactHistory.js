@@ -66,7 +66,7 @@ const declaration = {
     type: "function",
     function: {
         name: "compact_history",
-        description: "Compacts the current session into a summary (Memory/YYYY-MM-DD_NNN.md). Use when asked for compaction or when conversation is long.",
+        description: "Archives the current session as a diary (Memory/YYYY-MM-DD_NNN.md) and starts a fresh session. Only call when the user has agreed to wrap up — either in response to a CONTEXT PRESSURE advisory, or when they directly ask to compact/save the chat.",
         parameters: {
             type: "object",
             properties: {},

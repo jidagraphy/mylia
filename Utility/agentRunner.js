@@ -1,5 +1,5 @@
 const { chat } = require('../Clients/provider');
-const { appendToHistory, getSessionHistoryByChars } = require('./historyStore');
+const { appendToHistory, getSessionHistoryByChars, HISTORY_CHAR_BUDGET } = require('./historyStore');
 const { buildSystemInstruction } = require('./contextBuilder');
 const { generateSessionDiary } = require('../Tools/compactHistory');
 const { checkAndRenewSession, getContextKey } = require('./sessionManager');
@@ -7,7 +7,6 @@ const { availableTools, toolDeclarations } = require('../Tools');
 const { log, error: logError } = require('./logger');
 
 const MAX_ITERATIONS = 10;
-const HISTORY_CHAR_BUDGET = 50000;
 
 const chunkReply = (answer) => {
     const chunks = [];
@@ -50,7 +49,7 @@ const runAgentTurn = async ({
             log('Session', `Implicitly renewed session for ${contextKey} due to inactivity.`);
         }
 
-        const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger });
+        const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger, contextKey });
         const history = getSessionHistoryByChars(HISTORY_CHAR_BUDGET, contextKey);
 
         const currentMessage = { role: 'user', content: prompt };

@@ -29,7 +29,7 @@ const STARTUP_PROMPT = `A new session has just started. Greet the user in your p
 
 const runSessionStartup = async ({ channel, actor } = {}) => {
     const contextKey = getContextKey(channel, actor);
-    const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger: 'slash_command' });
+    const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger: 'slash_command', contextKey });
     const response = await chat(systemInstruction, toolDeclarations, [{ role: 'user', content: STARTUP_PROMPT }]);
     const greeting = response.content?.trim() || null;
     if (greeting) appendToHistory({ role: 'assistant', content: greeting }, contextKey);

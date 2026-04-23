@@ -5,6 +5,7 @@ const { getWorkspacePath } = require('./workspaceSetup');
 
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
 const TOOL_RESULT_REPLAY_MAX = 15000;
+const HISTORY_CHAR_BUDGET = 50000;
 
 const getHistoryPath = (contextKey) => {
     const filename = getSessionFilename(contextKey);
@@ -138,6 +139,17 @@ const getSessionHistoryByChars = (maxChars = 30000, contextKey) => {
     return selectedGroups.flat();
 };
 
+const getReplaySize = (contextKey) => {
+    const fullHistory = getSessionHistory(contextKey);
+    if (fullHistory.length === 0) return 0;
+    const sessionFilePath = getHistoryPath(contextKey);
+    const replayHistory = truncateOversizedToolResults(fullHistory, sessionFilePath);
+    const groups = groupMessages(replayHistory);
+    let total = 0;
+    for (const group of groups) total += groupCharLength(group);
+    return total;
+};
+
 const getFullHistory = (sessionId) => {
     const filePath = path.join(chatHistoryDir, `${sessionId}.jsonl`);
     if (!fs.existsSync(filePath)) return [];
@@ -156,5 +168,7 @@ module.exports = {
     appendToHistory,
     getSessionHistory,
     getSessionHistoryByChars,
+    getReplaySize,
     getFullHistory,
+    HISTORY_CHAR_BUDGET,
 };
