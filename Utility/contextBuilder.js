@@ -17,34 +17,10 @@ const memoryDir = path.join(getWorkspacePath(), 'Memory');
 
 const loadAgentIdentity = () => `=== AGENT ===\n${fs.readFileSync(agentMdPath, 'utf-8').trim()}`;
 
-const loadSoul = () => {
-    if (!fs.existsSync(soulFile)) return '';
+const loadOptionalSection = (filePath, header) => {
     try {
-        const soul = fs.readFileSync(soulFile, 'utf8').trim();
-        if (!soul) return '';
-        return `=== SOUL ===\n${soul}`;
-    } catch {
-        return '';
-    }
-};
-
-const loadUser = () => {
-    if (!fs.existsSync(userFile)) return '';
-    try {
-        const user = fs.readFileSync(userFile, 'utf8').trim();
-        if (!user) return '';
-        return `=== USER PROFILE ===\n${user}`;
-    } catch {
-        return '';
-    }
-};
-
-const loadLongTermMemory = () => {
-    if (!fs.existsSync(memoryFile)) return '';
-    try {
-        const mem = fs.readFileSync(memoryFile, 'utf8').trim();
-        if (!mem) return '';
-        return `=== LONG-TERM MEMORY ===\n${mem}`;
+        const body = fs.readFileSync(filePath, 'utf8').trim();
+        return body ? `=== ${header} ===\n${body}` : '';
     } catch {
         return '';
     }
@@ -66,10 +42,11 @@ const loadRecentSessionDiaries = (count = 2, contextKey = null) => {
     for (const file of files) {
         const sessionId = file.replace('.md', '');
         const filePath = path.join(memoryDir, `${sessionId}.md`);
-        try { var log = fs.readFileSync(filePath, 'utf8').trim(); }
+        let diaryContent;
+        try { diaryContent = fs.readFileSync(filePath, 'utf8').trim(); }
         catch { continue; }
-        if (log) {
-            diaries += `\n\n## Session Diary (${sessionId})\n${log}`;
+        if (diaryContent) {
+            diaries += `\n\n## Session Diary (${sessionId})\n${diaryContent}`;
         }
     }
 
@@ -197,9 +174,9 @@ const buildSystemInstruction = (turnContext = {}) => {
     const sections = [
         loadAgentIdentity(),
         loadAvailableSkills(),
-        loadSoul(),
-        loadUser(),
-        loadLongTermMemory(),
+        loadOptionalSection(soulFile, 'SOUL'),
+        loadOptionalSection(userFile, 'USER PROFILE'),
+        loadOptionalSection(memoryFile, 'LONG-TERM MEMORY'),
         loadRecentSessionDiaries(2, contextKey),
         loadContextPressureAdvisory(contextKey, trigger),
         loadRuntimeContext(turnContext),

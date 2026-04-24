@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { getSessionFilename } = require('./sessionManager');
 const { getWorkspacePath } = require('./workspaceSetup');
+const { error: logError } = require('./logger');
 
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
 const TOOL_RESULT_REPLAY_MAX = 15000;
@@ -27,7 +28,7 @@ const readJsonl = (filePath) => {
         const data = fs.readFileSync(filePath, 'utf8');
         return data.split('\n').filter(line => line.trim() !== '').map(line => JSON.parse(line));
     } catch (error) {
-        console.error(`Failed to read JSONL ${filePath}:`, error);
+        logError('History', `Failed to read JSONL ${filePath}: ${error.message}`);
         return [];
     }
 };
@@ -40,7 +41,7 @@ const appendToHistory = (message, contextKey) => {
         const entry = { ...message, timestamp: new Date().toISOString() };
         fs.appendFileSync(filePath, JSON.stringify(entry) + '\n');
     } catch (error) {
-        console.error('Failed to append to history:', error);
+        logError('History', `Failed to append to history: ${error.message}`);
     }
 };
 

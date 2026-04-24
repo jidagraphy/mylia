@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getWorkspacePath } = require('./workspaceSetup');
+const { error: logError } = require('./logger');
 
 const getSkillsDir = () => path.join(getWorkspacePath(), 'Skills');
 
@@ -53,7 +54,7 @@ function getInstalledSkills() {
                         });
                     }
                 } catch (e) {
-                    console.error(`[SkillManager] Failed to read SKILL.md for ${entry.name}:`, e.message);
+                    logError('SkillManager', `Failed to read SKILL.md for ${entry.name}: ${e.message}`);
                 }
             }
         }

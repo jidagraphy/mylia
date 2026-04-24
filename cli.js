@@ -9,6 +9,7 @@ const { getConfig } = require('./Utility/config');
 const { setupWorkspaceEnvironment, getWorkspacePath } = require('./Utility/workspaceSetup');
 const PID_FILE = path.join(getWorkspacePath(), '.pid');
 const LOG_FILE = path.join(getWorkspacePath(), '.log');
+const version = require('./package.json').version;
 
 const command = process.argv[2];
 const arg = process.argv[3];
@@ -165,7 +166,6 @@ const installSkill = async (repoUrl) => {
         process.exit(1);
     }
 
-    const { getWorkspacePath } = require('./Utility/workspaceSetup');
     const skillsDir = path.join(getWorkspacePath(), 'Skills');
 
     if (!fs.existsSync(skillsDir)) {
@@ -205,8 +205,6 @@ const installSkill = async (repoUrl) => {
 
 // routers
 
-const version = require('./package.json').version;
-
 const help = () => {
     console.log(`
   🧚 mylia v${version}
@@ -218,7 +216,7 @@ const help = () => {
     mylia logs               Tail the live console output
     mylia config             Interactive settings editor
     mylia restart            Restart the daemon
-    mylia install-skill <url> Install a ClawHub skill from a Git repository
+    mylia install-skill <url> Install a skill from a Git repository
 `);
 };
 

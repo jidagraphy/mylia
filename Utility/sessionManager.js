@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { getWorkspacePath } = require('./workspaceSetup');
+const { log } = require('./logger');
 
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
 const INACTIVE_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours — safety fallback; primary compaction is agent-driven via compact_history
@@ -62,7 +63,7 @@ const initSession = (contextKey) => {
     const latest = findLatestSession(contextKey);
     if (latest) {
         sessions.set(contextKey, { sessionId: latest.id, lastActivityTime: latest.mtimeMs });
-        console.log(`[Session] Resumed session for ${contextKey}: ${latest.id}`);
+        log('Session', `Resumed session for ${contextKey}: ${latest.id}`);
     }
 };
 
@@ -75,7 +76,7 @@ const ensureSession = (contextKey) => {
 const startSession = (contextKey) => {
     const sessionId = generateSessionId(contextKey);
     sessions.set(contextKey, { sessionId, lastActivityTime: Date.now() });
-    console.log(`[Session] New session started for ${contextKey}: ${sessionId}`);
+    log('Session', `New session started for ${contextKey}: ${sessionId}`);
     return sessionId;
 };
 

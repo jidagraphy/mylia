@@ -65,7 +65,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot) return;
-    if (!message.guild ? false : !message.mentions.has(client.user.id)) return;
+    if (message.guild && !message.mentions.has(client.user.id)) return;
 
     const userPrompt = message.content.replace(`<@${client.user.id}>`, '').trim();
 

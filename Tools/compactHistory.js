@@ -5,6 +5,7 @@ const { getFullHistory } = require('../Utility/historyStore');
 const { getSessionId, checkAndRenewSession } = require('../Utility/sessionManager');
 
 const { getWorkspacePath } = require('../Utility/workspaceSetup');
+const { log, error: logError } = require('../Utility/logger');
 
 const memoryDir = path.join(getWorkspacePath(), 'Memory');
 
@@ -43,10 +44,10 @@ Summarize as 5-10 bullet points covering: user requests, decisions made, prefere
 
         ensureMemoryDir();
         fs.writeFileSync(path.join(memoryDir, `${sessionId}.md`), summary);
-        console.log(`[Session Diary] Saved session diary to Memory/${sessionId}.md`);
+        log('Session Diary', `Saved session diary to Memory/${sessionId}.md`);
         return `Session diary saved to Memory/${sessionId}.md`;
     } catch (error) {
-        console.error('[Session Diary] Failed:', error.message);
+        logError('Session Diary', `Failed: ${error.message}`);
         return `Failed to generate diary: ${error.message}`;
     }
 };
