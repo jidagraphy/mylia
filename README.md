@@ -127,7 +127,7 @@ mylia install-skill <github-repo-url>
 
 | Tool | Description |
 |------|-------------|
-| `execute_shell` | Run shell commands on the host (30s timeout) |
+| `execute_shell` | Run shell commands on the host (configurable timeout) |
 | `web_fetch` | Fetch a web page as clean text |
 | `read_file` | Read any file |
 | `edit_file` | Edit a file (auto-backs up to `.bak`) |
