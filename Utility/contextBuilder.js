@@ -6,7 +6,7 @@ const { getInstalledSkills } = require('./skillManager');
 const { getConfig } = require('./config');
 const { getReplaySize, getLastUserMessageTimestamp, HISTORY_CHAR_BUDGET } = require('./historyStore');
 
-const ADVISORY_THRESHOLD_RATIO = 0.7;
+const ADVISORY_THRESHOLD_RATIO = getConfig()?.agent?.advisoryThresholdRatio || 0.7;
 const ADVISORY_THRESHOLD = HISTORY_CHAR_BUDGET * ADVISORY_THRESHOLD_RATIO;
 
 const agentMdPath = path.join(getWorkspacePath(), 'agent.md');

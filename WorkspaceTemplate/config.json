@@ -5,5 +5,15 @@
   "AI_PROVIDER": "gemini",
   "AI_MODEL": "gemma-4-31b-it",
   "OLLAMA_HOST": "http://127.0.0.1:11434",
-  "OLLAMA_URL": "http://127.0.0.1:11434"
+  "OLLAMA_URL": "http://127.0.0.1:11434",
+  "agent": {
+    "historyCharBudget": 50000,
+    "shellOutputMaxChars": 10000,
+    "shellTimeoutSeconds": 30,
+    "webFetchMaxChars": 100000,
+    "maxIterations": 10,
+    "inactiveTimeoutHours": 24,
+    "advisoryThresholdRatio": 0.7,
+    "toolResultReplayMax": 15000
+  }
 }

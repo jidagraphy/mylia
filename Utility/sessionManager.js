@@ -2,10 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 const { getWorkspacePath } = require('./workspaceSetup');
+const { getConfig } = require('./config');
 const { log } = require('./logger');
 
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
-const INACTIVE_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours — safety fallback; primary compaction is agent-driven via compact_history
+const INACTIVE_TIMEOUT = (getConfig()?.agent?.inactiveTimeoutHours || 24) * 60 * 60 * 1000; // safety fallback; primary compaction is agent-driven via compact_history
 
 // Map<contextKey, { sessionId, lastActivityTime }>
 const sessions = new Map();

@@ -1,6 +1,8 @@
 // web scraper: extracts main content, preserves links as [text](url), filters UI noise.
 
-const MAX_LENGTH = 100000;
+const { getConfig } = require('../Utility/config');
+
+const MAX_LENGTH = getConfig()?.agent?.webFetchMaxChars || 100000;
 
 // Lines whose text (link markdown stripped, trimmed) match any of these regexes are dropped.
 // Add new ones here as you find noisy patterns on specific sites.

@@ -2,11 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const { getSessionFilename } = require('./sessionManager');
 const { getWorkspacePath } = require('./workspaceSetup');
+const { getConfig } = require('./config');
 const { error: logError } = require('./logger');
 
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
-const TOOL_RESULT_REPLAY_MAX = 15000;
-const HISTORY_CHAR_BUDGET = 50000;
+const TOOL_RESULT_REPLAY_MAX = getConfig()?.agent?.toolResultReplayMax || 15000;
+const HISTORY_CHAR_BUDGET = getConfig()?.agent?.historyCharBudget || 50000;
 const JSON_FRAMING_OVERHEAD = 10;
 
 const ensureDir = () => {

@@ -4,9 +4,10 @@ const { buildSystemInstruction } = require('./contextBuilder');
 const { generateSessionDiary } = require('../Tools/compactHistory');
 const { checkAndRenewSession, getContextKey } = require('./sessionManager');
 const { availableTools, toolDeclarations } = require('../Tools');
+const { getConfig } = require('./config');
 const { log, error: logError } = require('./logger');
 
-const MAX_ITERATIONS = 10;
+const MAX_ITERATIONS = getConfig()?.agent?.maxIterations || 10;
 const DISCORD_MESSAGE_LIMIT = 2000;
 const MIN_SPLIT_LOOKBACK = 1000;
 
