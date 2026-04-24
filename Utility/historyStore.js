@@ -116,12 +116,29 @@ const truncateOversizedToolResults = (messages, sessionFilePath) => {
     });
 };
 
+const formatShortLocal = (iso) => {
+    const d = new Date(iso);
+    if (isNaN(d)) return null;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const prefixTimestamps = (messages) => {
+    return messages.map((msg) => {
+        if (msg.role === 'tool') return msg;
+        if (!msg.timestamp || !msg.content) return msg;
+        const ts = formatShortLocal(msg.timestamp);
+        if (!ts) return msg;
+        return { ...msg, content: `[${ts}] ${msg.content}` };
+    });
+};
+
 const getSessionHistoryByChars = (maxChars = 30000, contextKey) => {
     const fullHistory = getSessionHistory(contextKey);
     if (fullHistory.length === 0) return [];
 
     const sessionFilePath = getHistoryPath(contextKey);
-    const replayHistory = truncateOversizedToolResults(fullHistory, sessionFilePath);
+    const replayHistory = prefixTimestamps(truncateOversizedToolResults(fullHistory, sessionFilePath));
 
     const groups = groupMessages(replayHistory);
     let currentChars = 0;
@@ -143,7 +160,7 @@ const getReplaySize = (contextKey) => {
     const fullHistory = getSessionHistory(contextKey);
     if (fullHistory.length === 0) return 0;
     const sessionFilePath = getHistoryPath(contextKey);
-    const replayHistory = truncateOversizedToolResults(fullHistory, sessionFilePath);
+    const replayHistory = prefixTimestamps(truncateOversizedToolResults(fullHistory, sessionFilePath));
     const groups = groupMessages(replayHistory);
     let total = 0;
     for (const group of groups) total += groupCharLength(group);
