@@ -128,6 +128,9 @@ const formatShortLocal = (iso) => {
     return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
+// Currently unused — see buildReplayGroups. Kept around in case we want to revisit
+// with a non-prefix format (e.g. trailing "— sent HH:MM") that doesn't trigger
+// the model into mirroring the pattern on its own replies.
 const prefixTimestamps = (messages) => {
     return messages.map((msg) => {
         if (msg.role !== 'user') return msg;
@@ -142,7 +145,11 @@ const buildReplayGroups = (contextKey) => {
     const fullHistory = getSessionHistory(contextKey);
     if (fullHistory.length === 0) return [];
     const sessionFilePath = getHistoryPath(contextKey);
-    const processed = prefixTimestamps(truncateOversizedToolResults(fullHistory, sessionFilePath));
+    // prefixTimestamps disabled: even when limited to user messages only, the model pattern-imitates
+    // the `[MM-DD HH:MM]` shape and starts emitting the same prefix on its own replies.
+    // The system prompt's "Current time" line already gives the model absolute time awareness.
+    // const processed = prefixTimestamps(truncateOversizedToolResults(fullHistory, sessionFilePath));
+    const processed = truncateOversizedToolResults(fullHistory, sessionFilePath);
     return groupMessages(processed);
 };
 
@@ -168,11 +175,22 @@ const getReplaySize = (contextKey) => {
     return total;
 };
 
+const getLastUserMessageTimestamp = (contextKey) => {
+    const history = getSessionHistory(contextKey);
+    for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].role === 'user' && history[i].timestamp) {
+            return history[i].timestamp;
+        }
+    }
+    return null;
+};
+
 module.exports = {
     appendToHistory,
     getSessionHistory,
     getSessionHistoryByChars,
     getReplaySize,
     getFullHistory,
+    getLastUserMessageTimestamp,
     HISTORY_CHAR_BUDGET,
 };

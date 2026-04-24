@@ -4,7 +4,7 @@ const path = require('path');
 const { getWorkspacePath } = require('./workspaceSetup');
 const { getInstalledSkills } = require('./skillManager');
 const { getConfig } = require('./config');
-const { getReplaySize, HISTORY_CHAR_BUDGET } = require('./historyStore');
+const { getReplaySize, getLastUserMessageTimestamp, HISTORY_CHAR_BUDGET } = require('./historyStore');
 
 const ADVISORY_THRESHOLD_RATIO = 0.7;
 const ADVISORY_THRESHOLD = HISTORY_CHAR_BUDGET * ADVISORY_THRESHOLD_RATIO;
@@ -81,6 +81,17 @@ const loadAvailableSkills = () => {
     return skillsList.trim();
 };
 
+const formatTimeSince = (iso) => {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    if (diffMs < 60_000) return 'less than a minute ago';
+    const mins = Math.floor(diffMs / 60_000);
+    if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+};
+
 const loadRuntimeContext = (turnContext = {}) => {
     const { channel, client, actor, trigger, contextKey } = turnContext;
     const config = getConfig() || {};
@@ -90,6 +101,13 @@ const loadRuntimeContext = (turnContext = {}) => {
     const now = new Date();
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     lines.push(`Current time: ${now.toLocaleString()} (${tz})`);
+
+    if (contextKey) {
+        const lastUserTs = getLastUserMessageTimestamp(contextKey);
+        if (lastUserTs) {
+            lines.push(`Last user message: ${formatTimeSince(lastUserTs)}`);
+        }
+    }
 
     lines.push(`Host: ${os.hostname()} — ${os.platform()} ${os.release()} (user: ${os.userInfo().username})`);
 
