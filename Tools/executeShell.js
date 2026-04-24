@@ -1,13 +1,13 @@
 const { exec } = require('child_process');
-const os = require('os');
 const { getConfig } = require('../Utility/config');
+const { getWorkspacePath } = require('../Utility/workspaceSetup');
 
 const MAX_LENGTH = getConfig()?.agent?.shellOutputMaxChars || 10000;
 const TIMEOUT_MS = (getConfig()?.agent?.shellTimeoutSeconds || 30) * 1000;
 
 const handler = async ({ command }) => {
     return new Promise((resolve) => {
-        exec(command, { timeout: TIMEOUT_MS, cwd: os.homedir() }, (error, stdout, stderr) => {
+        exec(command, { timeout: TIMEOUT_MS, cwd: getWorkspacePath() }, (error, stdout, stderr) => {
             let result = '';
             if (error) {
                 result = `Error: ${error.message}\nStderr: ${stderr}`;
