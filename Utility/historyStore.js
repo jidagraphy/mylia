@@ -6,15 +6,29 @@ const { getWorkspacePath } = require('./workspaceSetup');
 const chatHistoryDir = path.join(getWorkspacePath(), 'Sessions');
 const TOOL_RESULT_REPLAY_MAX = 15000;
 const HISTORY_CHAR_BUDGET = 50000;
+const JSON_FRAMING_OVERHEAD = 10;
 
-const getHistoryPath = (contextKey) => {
-    const filename = getSessionFilename(contextKey);
-    if (!filename) return null;
-    return path.join(chatHistoryDir, filename);
-};
 const ensureDir = () => {
     if (!fs.existsSync(chatHistoryDir)) {
         fs.mkdirSync(chatHistoryDir, { recursive: true });
+    }
+};
+
+const pathForSessionId = (sessionId) => path.join(chatHistoryDir, `${sessionId}.jsonl`);
+
+const getHistoryPath = (contextKey) => {
+    const filename = getSessionFilename(contextKey);
+    return filename ? path.join(chatHistoryDir, filename) : null;
+};
+
+const readJsonl = (filePath) => {
+    if (!filePath || !fs.existsSync(filePath)) return [];
+    try {
+        const data = fs.readFileSync(filePath, 'utf8');
+        return data.split('\n').filter(line => line.trim() !== '').map(line => JSON.parse(line));
+    } catch (error) {
+        console.error(`Failed to read JSONL ${filePath}:`, error);
+        return [];
     }
 };
 
@@ -30,19 +44,9 @@ const appendToHistory = (message, contextKey) => {
     }
 };
 
-const getSessionHistory = (contextKey) => {
-    const filePath = getHistoryPath(contextKey);
-    if (!filePath || !fs.existsSync(filePath)) return [];
+const getSessionHistory = (contextKey) => readJsonl(getHistoryPath(contextKey));
 
-    try {
-        const data = fs.readFileSync(filePath, 'utf8');
-        const lines = data.split('\n').filter(line => line.trim() !== '');
-        return lines.map(line => JSON.parse(line));
-    } catch (error) {
-        console.error('Failed to read session history:', error);
-        return [];
-    }
-};
+const getFullHistory = (sessionId) => readJsonl(pathForSessionId(sessionId));
 
 /**
  * Groups messages into atomic units. Tool-call sequences
@@ -101,7 +105,7 @@ const groupCharLength = (group) => {
     for (const msg of group) {
         const contentStr = msg.content || '';
         const toolStr = msg.tool_calls ? JSON.stringify(msg.tool_calls) : '';
-        chars += contentStr.length + toolStr.length + 10;
+        chars += contentStr.length + toolStr.length + JSON_FRAMING_OVERHEAD;
     }
     return chars;
 };
@@ -133,52 +137,34 @@ const prefixTimestamps = (messages) => {
     });
 };
 
-const getSessionHistoryByChars = (maxChars = 30000, contextKey) => {
+const buildReplayGroups = (contextKey) => {
     const fullHistory = getSessionHistory(contextKey);
     if (fullHistory.length === 0) return [];
-
     const sessionFilePath = getHistoryPath(contextKey);
-    const replayHistory = prefixTimestamps(truncateOversizedToolResults(fullHistory, sessionFilePath));
+    const processed = prefixTimestamps(truncateOversizedToolResults(fullHistory, sessionFilePath));
+    return groupMessages(processed);
+};
 
-    const groups = groupMessages(replayHistory);
+const getSessionHistoryByChars = (maxChars = 30000, contextKey) => {
+    const groups = buildReplayGroups(contextKey);
+    if (groups.length === 0) return [];
+
     let currentChars = 0;
     const selectedGroups = [];
-
     for (let i = groups.length - 1; i >= 0; i--) {
         const groupChars = groupCharLength(groups[i]);
-
         if (currentChars + groupChars > maxChars) break;
-
         currentChars += groupChars;
         selectedGroups.unshift(groups[i]);
     }
-
     return selectedGroups.flat();
 };
 
 const getReplaySize = (contextKey) => {
-    const fullHistory = getSessionHistory(contextKey);
-    if (fullHistory.length === 0) return 0;
-    const sessionFilePath = getHistoryPath(contextKey);
-    const replayHistory = prefixTimestamps(truncateOversizedToolResults(fullHistory, sessionFilePath));
-    const groups = groupMessages(replayHistory);
+    const groups = buildReplayGroups(contextKey);
     let total = 0;
     for (const group of groups) total += groupCharLength(group);
     return total;
-};
-
-const getFullHistory = (sessionId) => {
-    const filePath = path.join(chatHistoryDir, `${sessionId}.jsonl`);
-    if (!fs.existsSync(filePath)) return [];
-
-    try {
-        const data = fs.readFileSync(filePath, 'utf8');
-        const lines = data.split('\n').filter(line => line.trim() !== '');
-        return lines.map(line => JSON.parse(line));
-    } catch (error) {
-        console.error(`Failed to read full history for ${sessionId}:`, error);
-        return [];
-    }
 };
 
 module.exports = {
