@@ -129,7 +129,7 @@ const formatShortLocal = (iso) => {
 
 const prefixTimestamps = (messages) => {
     return messages.map((msg) => {
-        if (msg.role === 'tool') return msg;
+        if (msg.role !== 'user') return msg;
         if (!msg.timestamp || !msg.content) return msg;
         const ts = formatShortLocal(msg.timestamp);
         if (!ts) return msg;
