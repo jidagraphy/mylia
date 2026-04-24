@@ -7,18 +7,20 @@ const { availableTools, toolDeclarations } = require('../Tools');
 const { log, error: logError } = require('./logger');
 
 const MAX_ITERATIONS = 10;
+const DISCORD_MESSAGE_LIMIT = 2000;
+const MIN_SPLIT_LOOKBACK = 1000;
 
 const chunkReply = (answer) => {
     const chunks = [];
     let remaining = answer;
     while (remaining.length > 0) {
-        if (remaining.length <= 2000) {
+        if (remaining.length <= DISCORD_MESSAGE_LIMIT) {
             chunks.push(remaining);
             break;
         }
-        let splitAt = remaining.lastIndexOf('\n', 2000);
-        if (splitAt < 1000) splitAt = remaining.lastIndexOf(' ', 2000);
-        if (splitAt < 1000) splitAt = 2000;
+        let splitAt = remaining.lastIndexOf('\n', DISCORD_MESSAGE_LIMIT);
+        if (splitAt < MIN_SPLIT_LOOKBACK) splitAt = remaining.lastIndexOf(' ', DISCORD_MESSAGE_LIMIT);
+        if (splitAt < MIN_SPLIT_LOOKBACK) splitAt = DISCORD_MESSAGE_LIMIT;
         chunks.push(remaining.substring(0, splitAt));
         remaining = remaining.substring(splitAt).trimStart();
     }
@@ -71,25 +73,22 @@ const runAgentTurn = async ({
             appendToHistory(response, contextKey);
             context.push(response);
 
-            for (const tc of response.tool_calls) {
-                const fn = availableTools[tc.function.name];
-                if (fn) {
-                    let parsedArgs = tc.function.arguments;
+            for (const toolCall of response.tool_calls) {
+                const toolHandler = availableTools[toolCall.function.name];
+                if (toolHandler) {
+                    let parsedArgs = toolCall.function.arguments;
                     if (typeof parsedArgs === 'string') {
                         if (!parsedArgs.trim()) {
                             parsedArgs = {};
                         } else {
                             try { parsedArgs = JSON.parse(parsedArgs); }
-                            catch (e) { logError('Tool', `Failed to parse args for ${tc.function.name}: ${e.message}`); parsedArgs = {}; }
+                            catch (e) { logError('Tool', `Failed to parse args for ${toolCall.function.name}: ${e.message}`); parsedArgs = {}; }
                         }
                     }
 
-                    parsedArgs._contextKey = contextKey;
-                    const argsStr = Object.keys(parsedArgs).filter(k => k !== '_contextKey').length > 0
-                        ? JSON.stringify(Object.fromEntries(Object.entries(parsedArgs).filter(([k]) => k !== '_contextKey')))
-                        : '';
-                    log('Tool', `${tc.function.name}(${argsStr}) ...`);
-                    const rawResult = await fn(parsedArgs);
+                    const argsStr = Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : '';
+                    log('Tool', `${toolCall.function.name}(${argsStr}) ...`);
+                    const rawResult = await toolHandler(parsedArgs, { contextKey });
 
                     let resultText = rawResult;
                     let pendingImage = null;
@@ -101,9 +100,9 @@ const runAgentTurn = async ({
                         pendingAttachments.push(rawResult._attachment);
                         resultText = rawResult.text || 'Attachment queued.';
                     }
-                    log('Tool', `${tc.function.name} → ${String(resultText).slice(0, 500)}`);
+                    log('Tool', `${toolCall.function.name} → ${String(resultText).slice(0, 500)}`);
 
-                    const toolMsg = { role: 'tool', tool_call_id: tc.id, content: resultText, name: tc.function.name };
+                    const toolMsg = { role: 'tool', tool_call_id: toolCall.id, content: resultText, name: toolCall.function.name };
                     appendToHistory(toolMsg, contextKey);
                     context.push(toolMsg);
 
@@ -112,8 +111,8 @@ const runAgentTurn = async ({
                         context.push({ role: 'user', content: 'Here is the image:', images: [pendingImage] });
                     }
                 } else {
-                    logError('Tool', `Not found: ${tc.function.name}`);
-                    const toolMsg = { role: 'tool', tool_call_id: tc.id, content: 'Tool not found', name: tc.function.name };
+                    logError('Tool', `Not found: ${toolCall.function.name}`);
+                    const toolMsg = { role: 'tool', tool_call_id: toolCall.id, content: 'Tool not found', name: toolCall.function.name };
                     appendToHistory(toolMsg, contextKey);
                     context.push(toolMsg);
                 }

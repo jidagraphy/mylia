@@ -36,16 +36,16 @@ const runSessionStartup = async ({ channel, actor } = {}) => {
     return greeting;
 };
 
-client.once(Events.ClientReady, async (c) => {
-    log('Bot', `Ready! Logged in as ${c.user.tag}`);
-    setClient(c);
+client.once(Events.ClientReady, async (readyClient) => {
+    log('Bot', `Ready! Logged in as ${readyClient.user.tag}`);
+    setClient(readyClient);
 
-    await c.application.commands.set([
+    await readyClient.application.commands.set([
         { name: 'new', description: 'Start a new session (saves current session diary)' },
     ]);
     log('Bot', 'Slash commands registered.');
 
-    startCronRunner(c);
+    startCronRunner(readyClient);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {

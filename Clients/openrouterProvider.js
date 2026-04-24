@@ -1,10 +1,10 @@
 const { getConfig } = require('../Utility/config');
-const OPENROUTER_API_KEY = getConfig()?.OPENROUTER_API_KEY;
 
 /**
  * Chat with tool support via OpenRouter REST API (OpenAI format).
  */
 const chat = async (model, systemInstruction, tools, messages) => {
+    const apiKey = getConfig()?.OPENROUTER_API_KEY;
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
             const toolMsg = { role: 'tool', tool_call_id: msg.tool_call_id || 'unknown', content: msg.content || '', name: msg.name || 'unknown_tool' };
@@ -51,8 +51,8 @@ const chat = async (model, systemInstruction, tools, messages) => {
     const result = { role: 'assistant', content: '', tool_calls: [] };
     const toolCallsMap = {}; // Used to accumulate streamed tool arguments
 
-    if (!OPENROUTER_API_KEY) {
-        console.error('[OpenRouterProvider] Missing OPENROUTER_API_KEY in .env');
+    if (!apiKey) {
+        console.error('[OpenRouterProvider] Missing OPENROUTER_API_KEY in config.json');
         return Object.assign(result, { content: 'System Error: OpenRouter API key is missing.' });
     }
 
@@ -60,7 +60,7 @@ const chat = async (model, systemInstruction, tools, messages) => {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': 'https://github.com/jidagraphy/mylia',
                 'X-Title': 'Mylia Agent'
@@ -140,6 +140,7 @@ const chat = async (model, systemInstruction, tools, messages) => {
  * Simple text completion via OpenRouter REST API.
  */
 const complete = async (model, prompt, systemPrompt) => {
+    const apiKey = getConfig()?.OPENROUTER_API_KEY;
     try {
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
@@ -148,7 +149,7 @@ const complete = async (model, prompt, systemPrompt) => {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': 'https://github.com/jidagraphy/mylia',
                 'X-Title': 'Mylia Agent'

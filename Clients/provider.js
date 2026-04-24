@@ -1,25 +1,16 @@
 const { getConfig } = require('../Utility/config');
-const config = getConfig() || {};
-const provider = config.AI_PROVIDER;
-const model = config.AI_MODEL;
 
 const getActiveProvider = () => {
-
-    try {
-        return require(`./${provider}Provider`);
-    } catch (error) {
-        throw new Error(`Configured AI_PROVIDER '${provider}' not found or failed to load.`);
-    }
+    const provider = getConfig()?.AI_PROVIDER;
+    if (!provider) throw new Error('AI_PROVIDER is not set in config.json.');
+    return require(`./${provider}Provider`);
 };
 
+const chat = (systemInstruction, tools, messages) =>
+    getActiveProvider().chat(getConfig()?.AI_MODEL, systemInstruction, tools, messages);
 
-const chat = (systemInstruction, tools, messages) => {
-    return getActiveProvider().chat(model, systemInstruction, tools, messages);
-};
-
-const complete = (prompt, systemPrompt) => {
-    return getActiveProvider().complete(model, prompt, systemPrompt);
-};
+const complete = (prompt, systemPrompt) =>
+    getActiveProvider().complete(getConfig()?.AI_MODEL, prompt, systemPrompt);
 
 module.exports = { chat, complete };
 

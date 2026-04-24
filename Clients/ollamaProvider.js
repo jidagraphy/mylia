@@ -1,11 +1,12 @@
 const { getConfig } = require('../Utility/config');
-const OLLAMA_HOST = getConfig()?.OLLAMA_URL || 'http://127.0.0.1:11434';
 
+const DEFAULT_OLLAMA_HOST = 'http://127.0.0.1:11434';
 
 /**
  * Chat with tool support via local Ollama REST API.
  */
 const chat = async (model, systemInstruction, tools, messages) => {
+    const host = getConfig()?.OLLAMA_URL || DEFAULT_OLLAMA_HOST;
     const formatMessage = (msg) => {
         if (msg.role === 'tool') {
             // Convert tool results to user messages for Ollama compatibility
@@ -56,7 +57,7 @@ const chat = async (model, systemInstruction, tools, messages) => {
     const result = { role: 'assistant', content: '', tool_calls: [] };
 
     try {
-        const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
+        const response = await fetch(`${host}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -113,12 +114,13 @@ const chat = async (model, systemInstruction, tools, messages) => {
  * Simple text completion via local Ollama.
  */
 const complete = async (model, prompt, systemPrompt) => {
+    const host = getConfig()?.OLLAMA_URL || DEFAULT_OLLAMA_HOST;
     try {
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
         messages.push({ role: 'user', content: prompt });
 
-        const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
+        const response = await fetch(`${host}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -1,3 +1,5 @@
+const { getConfig } = require('../Utility/config');
+
 /**
  * Converts an internal message object to Gemini's Content format.
  */
@@ -72,7 +74,6 @@ const toGeminiTools = (openAiTools) => {
  * Chat with tool support via Gemini REST API.
  */
 const chat = async (model, systemInstruction, tools, messages) => {
-    const { getConfig } = require('../Utility/config');
     const apiKey = getConfig()?.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
@@ -149,7 +150,6 @@ const chat = async (model, systemInstruction, tools, messages) => {
  * Simple text completion via Gemini REST API (no tools, no history). Used for summarization.
  */
 const complete = async (model, prompt, systemPrompt) => {
-    const { getConfig } = require('../Utility/config');
     const apiKey = getConfig()?.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
