@@ -1,6 +1,17 @@
 const { getConfig } = require('../Utility/config');
+const { CATEGORIES } = require('../Utility/errorMessages');
 
 const DEFAULT_OLLAMA_HOST = 'http://127.0.0.1:11434';
+
+const classifyHttpError = (status, errBody) => {
+    const detail = (errBody && errBody.slice(0, 200)) || `HTTP ${status}`;
+    if (status === 404) return { category: CATEGORIES.MODEL_NOT_FOUND, detail };
+    if (status === 400 && /model.*(not found|not loaded)/i.test(errBody || '')) {
+        return { category: CATEGORIES.MODEL_NOT_FOUND, detail };
+    }
+    if (status >= 500) return { category: CATEGORIES.UPSTREAM, detail };
+    return { category: CATEGORIES.UNKNOWN, detail };
+};
 
 /**
  * Chat with tool support via local Ollama REST API.
@@ -55,6 +66,7 @@ const chat = async (model, systemInstruction, tools, messages) => {
     if (tools?.length > 0) payload.tools = tools;
 
     const result = { role: 'assistant', content: '', tool_calls: [] };
+    let doneReason = null;
 
     try {
         const response = await fetch(`${host}/api/chat`, {
@@ -65,7 +77,8 @@ const chat = async (model, systemInstruction, tools, messages) => {
 
         if (!response.ok) {
             const errBody = await response.text();
-            throw new Error(`Ollama API error: ${response.status} ${response.statusText} - ${errBody}`);
+            result.error = classifyHttpError(response.status, errBody);
+            return result;
         }
 
         const reader = response.body.getReader();
@@ -95,16 +108,19 @@ const chat = async (model, systemInstruction, tools, messages) => {
                             });
                         }
                     }
+
+                    if (chunk.done_reason) doneReason = chunk.done_reason;
                 } catch (e) {
                     buffer = line + '\n' + buffer;
                 }
             }
         }
-    } catch (error) {
-        console.error('[OllamaProvider] Fetch error:', error);
-        if (!result.content && result.tool_calls.length === 0) {
-            result.content = `I ran into a connection issue. (${error.message})`;
+
+        if (doneReason === 'length') {
+            result.error = { category: CATEGORIES.TRUNCATED, detail: 'done_reason: length' };
         }
+    } catch (error) {
+        result.error = { category: CATEGORIES.NETWORK, detail: error.message };
     }
 
     return result;

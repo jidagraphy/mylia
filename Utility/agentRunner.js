@@ -5,11 +5,29 @@ const { generateSessionDiary } = require('../Tools/compactHistory');
 const { checkAndRenewSession, getContextKey } = require('./sessionManager');
 const { availableTools, toolDeclarations } = require('../Tools');
 const { getConfig } = require('./config');
+const { formatProviderError, CATEGORIES } = require('./errorMessages');
 const { log, error: logError } = require('./logger');
 
 const MAX_ITERATIONS = getConfig()?.agent?.maxIterations || 10;
 const DISCORD_MESSAGE_LIMIT = 2000;
 const MIN_SPLIT_LOOKBACK = 1000;
+
+const PROVIDER_DISPLAY = { gemini: 'Gemini', openrouter: 'OpenRouter', ollama: 'Ollama' };
+
+const applyProviderError = (response) => {
+    if (!response.error) return;
+    const provider = getConfig()?.AI_PROVIDER;
+    const providerName = PROVIDER_DISPLAY[provider] || 'Provider';
+    const message = formatProviderError({ ...response.error, providerName });
+    logError('Provider', `[${response.error.category}] ${response.error.detail || ''}`);
+
+    if (response.error.category === CATEGORIES.TRUNCATED && response.content?.trim()) {
+        response.content = `${response.content}\n\n_${message}_`;
+    } else {
+        response.content = message;
+        response.tool_calls = [];
+    }
+};
 
 const chunkReply = (answer) => {
     const chunks = [];
@@ -63,6 +81,7 @@ const runAgentTurn = async ({
 
         const context = [...history, currentMessage];
         let response = await chat(systemInstruction, toolDeclarations, context);
+        applyProviderError(response);
         appendToHistory({ role: 'user', content: prompt }, contextKey);
 
         const pendingAttachments = [];
@@ -124,11 +143,13 @@ const runAgentTurn = async ({
             }
 
             response = await chat(systemInstruction, iterations === MAX_ITERATIONS ? [] : toolDeclarations, context);
+            applyProviderError(response);
         }
 
-        if (!response.content?.trim() && iterations > 0) {
+        if (!response.content?.trim() && iterations > 0 && !response.error) {
             log('Reply', 'Response empty after tool use. Retrying without tools.');
             response = await chat(systemInstruction, [], context);
+            applyProviderError(response);
         }
 
         if (!response.content?.trim()) {
@@ -138,7 +159,10 @@ const runAgentTurn = async ({
 
         const answer = response.content;
         log('Reply', answer);
-        appendToHistory({ role: 'assistant', content: answer }, contextKey);
+        const isHardError = response.error && response.error.category !== CATEGORIES.TRUNCATED;
+        if (!isHardError) {
+            appendToHistory({ role: 'assistant', content: answer }, contextKey);
+        }
 
         if (typingInterval) clearInterval(typingInterval);
 

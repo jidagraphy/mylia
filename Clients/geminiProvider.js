@@ -1,4 +1,21 @@
 const { getConfig } = require('../Utility/config');
+const { CATEGORIES } = require('../Utility/errorMessages');
+
+const classifyHttpError = (status, data) => {
+    const apiStatus = data?.error?.status;
+    const detail = data?.error?.message || `HTTP ${status}`;
+
+    if (apiStatus === 'RESOURCE_EXHAUSTED') return { category: CATEGORIES.QUOTA, detail };
+    if (apiStatus === 'UNAUTHENTICATED' || apiStatus === 'PERMISSION_DENIED') return { category: CATEGORIES.AUTH, detail };
+    if (apiStatus === 'NOT_FOUND') return { category: CATEGORIES.MODEL_NOT_FOUND, detail };
+    if (apiStatus === 'UNAVAILABLE' || apiStatus === 'DEADLINE_EXCEEDED' || apiStatus === 'INTERNAL') {
+        return { category: CATEGORIES.UPSTREAM, detail };
+    }
+    if (status === 401 || status === 403) return { category: CATEGORIES.AUTH, detail };
+    if (status === 429) return { category: CATEGORIES.RATE_LIMIT, detail };
+    if (status >= 500) return { category: CATEGORIES.UPSTREAM, detail };
+    return { category: CATEGORIES.UNKNOWN, detail };
+};
 
 /**
  * Converts an internal message object to Gemini's Content format.
@@ -113,11 +130,20 @@ const chat = async (model, systemInstruction, tools, messages) => {
         const data = await res.json();
 
         if (!res.ok) {
-            throw new Error(`Gemini API Error: ${data.error?.message || JSON.stringify(data)}`);
+            result.error = classifyHttpError(res.status, data);
+            return result;
+        }
+
+        // Input-level safety block: no candidate, blockReason in promptFeedback
+        const blockReason = data.promptFeedback?.blockReason;
+        if (blockReason) {
+            result.error = { category: CATEGORIES.SAFETY, detail: `promptFeedback: ${blockReason}` };
+            return result;
         }
 
         const candidate = data.candidates?.[0];
         if (!candidate) {
+            result.error = { category: CATEGORIES.UNKNOWN, detail: 'no candidate returned' };
             return result;
         }
 
@@ -136,11 +162,16 @@ const chat = async (model, systemInstruction, tools, messages) => {
             // Store raw parts to echo back in history for next round
             result._rawParts = parts;
         }
-    } catch (error) {
-        console.error('[GeminiProvider] Fetch error:', error);
-        if (!result.content && result.tool_calls.length === 0) {
-            result.content = `I ran into a connection issue. (${error.message})`;
+
+        // Output-level signals: safety block mid-generation or token limit hit
+        const finishReason = candidate.finishReason;
+        if (finishReason === 'SAFETY' || finishReason === 'RECITATION' || finishReason === 'OTHER') {
+            result.error = { category: CATEGORIES.SAFETY, detail: `finishReason: ${finishReason}` };
+        } else if (finishReason === 'MAX_TOKENS') {
+            result.error = { category: CATEGORIES.TRUNCATED, detail: 'MAX_TOKENS' };
         }
+    } catch (error) {
+        result.error = { category: CATEGORIES.NETWORK, detail: error.message };
     }
 
     return result;

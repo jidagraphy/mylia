@@ -1,4 +1,15 @@
 const { getConfig } = require('../Utility/config');
+const { CATEGORIES } = require('../Utility/errorMessages');
+
+const classifyHttpError = (status, errText) => {
+    const detail = (errText && errText.slice(0, 200)) || `HTTP ${status}`;
+    if (status === 401) return { category: CATEGORIES.AUTH, detail };
+    if (status === 402) return { category: CATEGORIES.QUOTA, detail };
+    if (status === 429) return { category: CATEGORIES.RATE_LIMIT, detail };
+    if (status === 404) return { category: CATEGORIES.MODEL_NOT_FOUND, detail };
+    if (status >= 500) return { category: CATEGORIES.UPSTREAM, detail };
+    return { category: CATEGORIES.UNKNOWN, detail };
+};
 
 /**
  * Chat with tool support via OpenRouter REST API (OpenAI format).
@@ -52,9 +63,11 @@ const chat = async (model, systemInstruction, tools, messages) => {
     const toolCallsMap = {}; // Used to accumulate streamed tool arguments
 
     if (!apiKey) {
-        console.error('[OpenRouterProvider] Missing OPENROUTER_API_KEY in config.json');
-        return Object.assign(result, { content: 'System Error: OpenRouter API key is missing.' });
+        result.error = { category: CATEGORIES.AUTH, detail: 'OPENROUTER_API_KEY missing from config' };
+        return result;
     }
+
+    let finishReason = null;
 
     try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -70,7 +83,8 @@ const chat = async (model, systemInstruction, tools, messages) => {
 
         if (!response.ok) {
             const errText = await response.text();
-            throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errText}`);
+            result.error = classifyHttpError(response.status, errText);
+            return result;
         }
 
         const reader = response.body.getReader();
@@ -83,7 +97,7 @@ const chat = async (model, systemInstruction, tools, messages) => {
 
             const chunkString = decoder.decode(value, { stream: true });
             buffer += chunkString;
-            
+
             const lines = buffer.split('\n');
             // Keep the last partial line in the buffer
             buffer = lines.pop() || '';
@@ -95,7 +109,8 @@ const chat = async (model, systemInstruction, tools, messages) => {
 
                 try {
                     const chunk = JSON.parse(line.substring(6));
-                    const delta = chunk.choices?.[0]?.delta;
+                    const choice = chunk.choices?.[0];
+                    const delta = choice?.delta;
 
                     if (delta?.content) {
                         result.content += delta.content;
@@ -110,6 +125,8 @@ const chat = async (model, systemInstruction, tools, messages) => {
                             if (tc.function?.arguments) toolCallsMap[tc.index].arguments += tc.function.arguments;
                         }
                     }
+
+                    if (choice?.finish_reason) finishReason = choice.finish_reason;
                 } catch (e) {
                     // If JSON parse fails, it might be an incomplete chunk that got split exactly at a newline.
                     // Put it back in the buffer to prepend to the next chunk.
@@ -126,11 +143,14 @@ const chat = async (model, systemInstruction, tools, messages) => {
             }));
         }
 
-    } catch (error) {
-        console.error('\n[OpenRouterProvider] Fetch error:', error);
-        if (!result.content && result.tool_calls.length === 0) {
-            result.content = `I ran into a connection issue. (${error.message})`;
+        if (finishReason === 'length') {
+            result.error = { category: CATEGORIES.TRUNCATED, detail: 'finish_reason: length' };
+        } else if (finishReason === 'content_filter') {
+            result.error = { category: CATEGORIES.SAFETY, detail: 'finish_reason: content_filter' };
         }
+
+    } catch (error) {
+        result.error = { category: CATEGORIES.NETWORK, detail: error.message };
     }
 
     return result;
