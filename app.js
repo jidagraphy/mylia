@@ -1,9 +1,10 @@
+const os = require('os');
 const { getConfig } = require('./Utility/config');
 
 const { setupWorkspaceEnvironment } = require('./Utility/workspaceSetup');
 const { Client, GatewayIntentBits, Partials, Events } = require('discord.js');
 const { chat } = require('./Clients/provider');
-const { appendToHistory } = require('./Utility/historyStore');
+const { appendToHistory, getReplaySize, getTrimmedReplaySize, HISTORY_CHAR_BUDGET, getLastUserMessageTimestamp } = require('./Utility/historyStore');
 const { buildSystemInstruction } = require('./Utility/contextBuilder');
 const { generateSessionDiary } = require('./Tools/compactHistory');
 const { checkAndRenewSession, getContextKey } = require('./Utility/sessionManager');
@@ -53,6 +54,7 @@ client.once(Events.ClientReady, async (readyClient) => {
                 },
             ],
         },
+        { name: 'status', description: 'Show runtime context and context size breakdown' },
     ]);
     log('Bot', 'Slash commands registered.');
 
@@ -61,6 +63,51 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
+
+    if (interaction.commandName === 'status') {
+        const contextKey = getContextKey(interaction.channel, interaction.user);
+        const systemInstruction = buildSystemInstruction({ channel: interaction.channel, client, actor: interaction.user, trigger: 'slash_command', contextKey });
+        const sysChars = systemInstruction.length;
+        const replayFull = getReplaySize(contextKey);
+        const replaySent = getTrimmedReplaySize(contextKey);
+        const totalSent = sysChars + replaySent;
+        const k = (n) => `${Math.round(n / 1000)}k`;
+
+        const config = getConfig();
+        const lastTs = getLastUserMessageTimestamp(contextKey);
+        const lastMsg = lastTs ? new Date(lastTs).toLocaleString() : 'none';
+
+        const guild = interaction.channel?.guild;
+        const channelLine = guild
+            ? `#${interaction.channel.name} in **${guild.name}**`
+            : `DM (channel id: ${interaction.channel?.id})`;
+
+        const allChannels = guild
+            ? [...guild.channels.cache.values()].filter(c => typeof c.isTextBased === 'function' && c.isTextBased()).map(c => `#${c.name}`).join(', ')
+            : null;
+
+        const lines = [
+            `**Status**`,
+            `Bot: \`${client.user.tag}\` (id: \`${client.user.id}\`)`,
+            `Model: \`${config.AI_MODEL || 'unknown'}\` via \`${config.AI_PROVIDER || 'unknown'}\``,
+            `Host: \`${os.hostname()}\` — ${os.platform()} ${os.release()} (user: ${os.userInfo().username})`,
+            '',
+            '**Channel**',
+            channelLine,
+            ...(allChannels ? [`Available: ${allChannels}`] : []),
+            '',
+            '**Context**',
+            `System instruction: \`${k(sysChars)}\` chars`,
+            `Session replay — full: \`${k(replayFull)}\` chars`,
+            `Session replay — sent: \`${k(replaySent)}\` / \`${k(HISTORY_CHAR_BUDGET)}\` budget`,
+            `Total sent to AI: \`${k(totalSent)}\` chars`,
+            '',
+            `Last message: ${lastMsg}`,
+        ];
+
+        await interaction.reply(lines.join('\n'));
+        return;
+    }
 
     if (interaction.commandName === 'new') {
         await interaction.deferReply();
@@ -77,7 +124,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 prompt: firstMessage,
                 actor: interaction.user,
                 trigger: 'slash_command',
-                typing: false,
+                typing: true,
             });
         } else {
             const greeting = await runSessionStartup({ channel: interaction.channel, actor: interaction.user }) || 'New session started!';

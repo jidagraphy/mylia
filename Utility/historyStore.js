@@ -176,6 +176,17 @@ const getReplaySize = (contextKey) => {
     return total;
 };
 
+const getTrimmedReplaySize = (contextKey) => {
+    const groups = buildReplayGroups(contextKey);
+    let total = 0;
+    for (let i = groups.length - 1; i >= 0; i--) {
+        const g = groupCharLength(groups[i]);
+        if (total + g > HISTORY_CHAR_BUDGET) break;
+        total += g;
+    }
+    return total;
+};
+
 const getLastUserMessageTimestamp = (contextKey) => {
     const history = getSessionHistory(contextKey);
     for (let i = history.length - 1; i >= 0; i--) {
@@ -191,6 +202,7 @@ module.exports = {
     getSessionHistory,
     getSessionHistoryByChars,
     getReplaySize,
+    getTrimmedReplaySize,
     getFullHistory,
     getLastUserMessageTimestamp,
     HISTORY_CHAR_BUDGET,
