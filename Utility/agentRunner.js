@@ -54,6 +54,7 @@ const runAgentTurn = async ({
     actor = null,
     trigger = 'message',
     typing = true,
+    historyBudget = null,
 }) => {
     let typingInterval;
     try {
@@ -71,7 +72,7 @@ const runAgentTurn = async ({
         }
 
         const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger, contextKey });
-        const history = getSessionHistoryByChars(HISTORY_CHAR_BUDGET, contextKey);
+        const history = getSessionHistoryByChars(historyBudget ?? HISTORY_CHAR_BUDGET, contextKey);
 
         const currentMessage = { role: 'user', content: prompt };
         if (images.length > 0) currentMessage.images = images;

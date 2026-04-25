@@ -37,6 +37,7 @@ const fireEntry = async (entry, firedTime) => {
             actor: null,
             trigger: 'cron',
             typing: false,
+            historyBudget: entry.includeHistory ? null : 0,
         });
 
         if (entry.type === 'at') {

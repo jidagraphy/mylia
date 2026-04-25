@@ -9,7 +9,7 @@ const detectType = (schedule) => {
     return 'cron';
 };
 
-const handler = async ({ schedule, channelId, prompt, timezone }) => {
+const handler = async ({ schedule, channelId, prompt, timezone, includeHistory = false }) => {
     if (typeof schedule !== 'string' || !schedule.trim()) {
         return 'Error: schedule is required.';
     }
@@ -58,6 +58,7 @@ const handler = async ({ schedule, channelId, prompt, timezone }) => {
         timezone: type === 'cron' ? tz : undefined,
         channelId,
         prompt,
+        includeHistory,
         createdAt: new Date().toISOString(),
         lastFiredAt: null,
     };
@@ -91,6 +92,10 @@ const declaration = {
                 timezone: {
                     type: "string",
                     description: "Optional IANA timezone for cron expressions (e.g. 'Asia/Seoul', 'America/New_York'). Defaults to system timezone. Ignored for 'at' schedules."
+                },
+                includeHistory: {
+                    type: "boolean",
+                    description: "Whether to include the channel's session history when this cron fires. Default false. Set true only when the task genuinely needs conversational context (e.g. summarising a chat). Self-contained tasks like trading cycles should leave this false."
                 }
             },
             required: ["schedule", "channelId", "prompt"]
