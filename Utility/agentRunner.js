@@ -9,6 +9,30 @@ const { formatProviderError, CATEGORIES } = require('./errorMessages');
 const { log, error: logError } = require('./logger');
 
 const MAX_ITERATIONS = getConfig()?.agent?.maxIterations || 10;
+
+const _retryCfg = getConfig()?.agent?.retry ?? {};
+const RETRY_ENABLED = _retryCfg.enabled ?? true;
+const RETRY_MAX = _retryCfg.maxRetries ?? 1;
+const RETRY_DELAY_MS = _retryCfg.delayMs ?? 5000;
+
+// Categories where automatic retry makes sense (transient, not a permanent failure).
+// Edit this set to control which errors trigger a retry.
+const RETRYABLE_CATEGORIES = new Set([
+    CATEGORIES.RATE_LIMIT,
+    CATEGORIES.UPSTREAM,
+    CATEGORIES.NETWORK,
+    CATEGORIES.UNKNOWN,
+]);
+
+const chatWithRetry = async (system, tools, context) => {
+    let response = await chat(system, tools, context);
+    for (let i = 0; i < RETRY_MAX && RETRY_ENABLED && response.error && RETRYABLE_CATEGORIES.has(response.error.category); i++) {
+        log('Provider', `Retryable error (${response.error.category}), retry ${i + 1}/${RETRY_MAX} in ${RETRY_DELAY_MS}ms…`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        response = await chat(system, tools, context);
+    }
+    return response;
+};
 const DISCORD_MESSAGE_LIMIT = 2000;
 const MIN_SPLIT_LOOKBACK = 1000;
 
@@ -81,7 +105,7 @@ const runAgentTurn = async ({
         log(sourceLabel, prompt + (images.length > 0 ? ` [+${images.length} image(s)]` : ''));
 
         const context = [...history, currentMessage];
-        let response = await chat(systemInstruction, toolDeclarations, context);
+        let response = await chatWithRetry(systemInstruction, toolDeclarations, context);
         applyProviderError(response);
         appendToHistory({ role: 'user', content: prompt }, contextKey);
 
@@ -143,13 +167,13 @@ const runAgentTurn = async ({
                 context.push({ role: 'user', content: 'You have reached the maximum number of tool attempts. Please provide a final text response summarizing what you have done so far.' });
             }
 
-            response = await chat(systemInstruction, iterations === MAX_ITERATIONS ? [] : toolDeclarations, context);
+            response = await chatWithRetry(systemInstruction, iterations === MAX_ITERATIONS ? [] : toolDeclarations, context);
             applyProviderError(response);
         }
 
         if (!response.content?.trim() && iterations > 0 && !response.error) {
             log('Reply', 'Response empty after tool use. Retrying without tools.');
-            response = await chat(systemInstruction, [], context);
+            response = await chatWithRetry(systemInstruction, [], context);
             applyProviderError(response);
         }
 

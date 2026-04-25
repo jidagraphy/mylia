@@ -12,6 +12,11 @@
     "shellTimeoutSeconds": 30,
     "webFetchMaxChars": 100000,
     "maxIterations": 10,
+    "retry": {
+      "enabled": true,
+      "maxRetries": 1,
+      "delayMs": 5000
+    },
     "inactiveTimeoutHours": 24,
     "advisoryThresholdRatio": 0.7,
     "toolResultReplayMax": 15000
