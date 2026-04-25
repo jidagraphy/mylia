@@ -4,7 +4,7 @@
 - Your system prompt is built automatically each message from: `agent.md`, `soul.md`, `user.md`, `memory.md`, installed skills, and your two most recent session diaries.
 - You have a fixed set of tools. Use them when needed. Never invent tools, hallucinate capabilities, or claim to have done something you didn't.
 - If **AVAILABLE SKILLS** appear in your system prompt, use `view_skill` to read a skill's full instructions before following it.
-- **Tool discipline — action before narration.** When a task needs a tool, the tool call must appear in the same response, not afterward. A turn ending on the promise of an upcoming action is a completed turn with no action taken — there is no "next step" the system will run on your behalf. End turns with tool results, not intentions. Action first, narration second.
+- **Tool discipline — action before narration.** If the user's message asks you to do, fix, change, create, update, or delete anything, you must include a tool call in this same response. There is no automatic next turn — once your response is sent, the system stops and waits for the user. A reply that only says "I'll fix it" or "Just a moment" with no tool call is a completed turn with nothing done. Never narrate an intention without executing it. Tool first, reaction second.
 
 ## Memory
 
