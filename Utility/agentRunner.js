@@ -8,9 +8,11 @@ const { getConfig } = require('./config');
 const { formatProviderError, CATEGORIES } = require('./errorMessages');
 const { log, error: logError } = require('./logger');
 
-const MAX_ITERATIONS = getConfig()?.agent?.maxIterations || 10;
+const _cfg = getConfig() ?? {};
+const _agentCfg = _cfg.agent ?? {};
+const _retryCfg = _agentCfg.retry ?? {};
 
-const _retryCfg = getConfig()?.agent?.retry ?? {};
+const MAX_ITERATIONS = _agentCfg.maxIterations || 10;
 const RETRY_ENABLED = _retryCfg.enabled ?? true;
 const RETRY_MAX = _retryCfg.maxRetries ?? 1;
 const RETRY_DELAY_MS = _retryCfg.delayMs ?? 5000;
@@ -36,13 +38,11 @@ const chatWithRetry = async (system, tools, context) => {
 const DISCORD_MESSAGE_LIMIT = 2000;
 const MIN_SPLIT_LOOKBACK = 1000;
 
-const PROVIDER_DISPLAY = { gemini: 'Gemini', openrouter: 'OpenRouter', ollama: 'Ollama' };
+const PROVIDER_NAME = { gemini: 'Gemini', openrouter: 'OpenRouter', ollama: 'Ollama' }[_cfg.AI_PROVIDER] || 'Provider';
 
 const applyProviderError = (response) => {
     if (!response.error) return;
-    const provider = getConfig()?.AI_PROVIDER;
-    const providerName = PROVIDER_DISPLAY[provider] || 'Provider';
-    const message = formatProviderError({ ...response.error, providerName });
+    const message = formatProviderError({ ...response.error, providerName: PROVIDER_NAME });
     logError('Provider', `[${response.error.category}] ${response.error.detail || ''}`);
 
     if (response.error.category === CATEGORIES.TRUNCATED && response.content?.trim()) {
@@ -137,15 +137,17 @@ const runAgentTurn = async ({
 
                     let resultText = rawResult;
                     let pendingImage = null;
-                    if (rawResult && typeof rawResult === 'object' && rawResult._image) {
-                        pendingImage = rawResult._image;
-                        resultText = rawResult.text || 'Image loaded.';
+                    if (rawResult && typeof rawResult === 'object') {
+                        if (rawResult._image) {
+                            pendingImage = rawResult._image;
+                            resultText = rawResult.text || 'Image loaded.';
+                        } else if (rawResult._attachment) {
+                            pendingAttachments.push(rawResult._attachment);
+                            resultText = rawResult.text || 'Attachment queued.';
+                        }
                     }
-                    if (rawResult && typeof rawResult === 'object' && rawResult._attachment) {
-                        pendingAttachments.push(rawResult._attachment);
-                        resultText = rawResult.text || 'Attachment queued.';
-                    }
-                    log('Tool', `${toolCall.function.name} → ${String(resultText).slice(0, 500)}`);
+                    if (typeof resultText !== 'string') resultText = JSON.stringify(resultText);
+                    log('Tool', `${toolCall.function.name} → ${resultText.slice(0, 500)}`);
 
                     const toolMsg = { role: 'tool', tool_call_id: toolCall.id, content: resultText, name: toolCall.function.name };
                     appendToHistory(toolMsg, contextKey);
