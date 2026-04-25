@@ -41,7 +41,18 @@ client.once(Events.ClientReady, async (readyClient) => {
     setClient(readyClient);
 
     await readyClient.application.commands.set([
-        { name: 'new', description: 'Start a new session (saves current session diary)' },
+        {
+            name: 'new',
+            description: 'Start a new session (saves current session diary)',
+            options: [
+                {
+                    name: 'message',
+                    description: 'First message to send in the new session',
+                    type: 3, // STRING
+                    required: false,
+                },
+            ],
+        },
     ]);
     log('Bot', 'Slash commands registered.');
 
@@ -57,9 +68,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const { previousSessionId } = await checkAndRenewSession(contextKey, generateSessionDiary, { force: true });
         log('Session', `Force renewed session for ${contextKey}. Previous: ${previousSessionId}`);
 
-        const greeting = await runSessionStartup({ channel: interaction.channel, actor: interaction.user }) || 'New session started!';
-        log('Session', 'Startup greeting sent.');
-        await interaction.editReply(greeting);
+        const firstMessage = interaction.options.getString('message');
+        if (firstMessage) {
+            await interaction.editReply(`> ${firstMessage}`);
+            await runAgentTurn({
+                channel: interaction.channel,
+                client,
+                prompt: firstMessage,
+                actor: interaction.user,
+                trigger: 'slash_command',
+                typing: false,
+            });
+        } else {
+            const greeting = await runSessionStartup({ channel: interaction.channel, actor: interaction.user }) || 'New session started!';
+            log('Session', 'Startup greeting sent.');
+            await interaction.editReply(greeting);
+        }
     }
 });
 
