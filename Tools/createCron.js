@@ -59,6 +59,7 @@ const handler = async ({ schedule, channelId, prompt, timezone, includeHistory =
         channelId,
         prompt,
         includeHistory,
+        enabled: true,
         createdAt: new Date().toISOString(),
         lastFiredAt: null,
     };

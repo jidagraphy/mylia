@@ -28,8 +28,9 @@ const handler = async () => {
             }
         }
 
+        const disabledTag = e.enabled === false ? ' [disabled]' : '';
         lines.push(
-            `- ${e.id} [${e.type}] "${e.schedule}"${e.timezone ? ` (${e.timezone})` : ''}\n` +
+            `- ${e.id} [${e.type}]${disabledTag} "${e.schedule}"${e.timezone ? ` (${e.timezone})` : ''}\n` +
             `    channel: ${e.channelId}\n` +
             `    prompt: ${e.prompt}\n` +
             `    next fire: ${nextFire}` +

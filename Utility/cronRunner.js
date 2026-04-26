@@ -58,6 +58,7 @@ const tick = async () => {
 
     for (const entry of entries) {
         if (firingIds.has(entry.id)) continue;
+        if (entry.enabled === false) continue;
 
         if (entry.type === 'at') {
             if (entry.fired) continue;
