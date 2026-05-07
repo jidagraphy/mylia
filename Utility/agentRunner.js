@@ -17,6 +17,9 @@ const RETRY_ENABLED = _retryCfg.enabled ?? true;
 const RETRY_MAX = _retryCfg.maxRetries ?? 1;
 const RETRY_DELAY_MS = _retryCfg.delayMs ?? 5000;
 
+const PROVIDER_DISPLAY_NAMES = { gemini: 'Gemini', openrouter: 'OpenRouter', ollama: 'Ollama' };
+const getProviderName = () => PROVIDER_DISPLAY_NAMES[getConfig()?.AI_PROVIDER] || 'Provider';
+
 // Categories where automatic retry makes sense (transient, not a permanent failure).
 // Edit this set to control which errors trigger a retry.
 const RETRYABLE_CATEGORIES = new Set([
@@ -38,11 +41,9 @@ const chatWithRetry = async (system, tools, context) => {
 const DISCORD_MESSAGE_LIMIT = 2000;
 const MIN_SPLIT_LOOKBACK = 1000;
 
-const PROVIDER_NAME = { gemini: 'Gemini', openrouter: 'OpenRouter', ollama: 'Ollama' }[_cfg.AI_PROVIDER] || 'Provider';
-
 const applyProviderError = (response) => {
     if (!response.error) return;
-    const message = formatProviderError({ ...response.error, providerName: PROVIDER_NAME });
+    const message = formatProviderError({ ...response.error, providerName: getProviderName() });
     logError('Provider', `[${response.error.category}] ${response.error.detail || ''}`);
 
     if (response.error.category === CATEGORIES.TRUNCATED && response.content?.trim()) {
