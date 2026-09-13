@@ -18,48 +18,34 @@ const classifyHttpError = (status, errBody) => {
  */
 const chat = async (model, systemInstruction, tools, messages) => {
     const host = getConfig()?.OLLAMA_URL || DEFAULT_OLLAMA_HOST;
-    const formatMessage = (msg) => {
-        if (msg.role === 'tool') {
-            // Convert tool results to user messages for Ollama compatibility
-            const out = { role: 'user', content: `[Tool Result: ${msg.name || 'unknown'}]\n${msg.content || ''}` };
-            if (msg.images?.length > 0) out.images = msg.images.map(img => img.data);
-            return out;
-        }
-        if (msg.role === 'assistant') {
-            return { role: 'assistant', content: msg.content || '' };
-        }
-        const out = { role: 'user', content: msg.content || '' };
+    // Native tool format: assistant messages keep real tool_calls, results go back as role "tool".
+    // Never flatten tool calls into text — the model imitates whatever tool-call shape it sees in history
+    // (the old "(calling tool)" placeholder got copied verbatim as fake tool calls).
+    const parseArgs = (args) => {
+        if (typeof args !== 'string') return args || {};
+        try { return JSON.parse(args); } catch { return {}; }
+    };
+    const withImages = (out, msg) => {
         if (msg.images?.length > 0) out.images = msg.images.map(img => img.data);
         return out;
     };
-
-    // Keep assistant turn structure intact for Ollama (user→assistant→user).
-    // Empty assistant messages (tool-call-only) get a placeholder instead of being removed.
-    // Consecutive same-role messages get merged (e.g. user + tool-as-user back-to-back).
-    const formatAndFilter = (msgs) => {
-        const formatted = msgs.map(formatMessage).filter(m => m.role === 'assistant' || m.content.trim() !== '');
-        for (const m of formatted) {
-            if (m.role === 'assistant' && !m.content.trim()) {
-                m.content = '(calling tool)';
-            }
+    const formatMessage = (msg) => {
+        if (msg.role === 'tool') {
+            return withImages({ role: 'tool', tool_name: msg.name || 'unknown', content: msg.content || '' }, msg);
         }
-        const merged = [];
-        for (const m of formatted) {
-            if (merged.length > 0 && merged[merged.length - 1].role === m.role) {
-                merged[merged.length - 1].content += '\n\n' + m.content;
-                if (m.images?.length > 0) {
-                    merged[merged.length - 1].images = [...(merged[merged.length - 1].images || []), ...m.images];
-                }
-            } else {
-                merged.push({ ...m });
+        if (msg.role === 'assistant') {
+            const out = { role: 'assistant', content: msg.content || '' };
+            if (msg.tool_calls?.length > 0) {
+                out.tool_calls = msg.tool_calls.map(tc => ({ function: { name: tc.function.name, arguments: parseArgs(tc.function.arguments) } }));
             }
+            return out;
         }
-        return merged;
+        return withImages({ role: 'user', content: msg.content || '' }, msg);
     };
 
     messages = [
         { role: 'system', content: systemInstruction },
-        ...formatAndFilter(messages)
+        ...messages.map(formatMessage).filter(m => m.role !== 'user' || m.content.trim() || m.images),
     ];
 
     const payload = { model, messages, stream: true };
