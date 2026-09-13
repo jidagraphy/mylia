@@ -8,13 +8,18 @@ const TIMEOUT_MS = (getConfig()?.agent?.shellTimeoutSeconds || 30) * 1000;
 const handler = async ({ command }) => {
     return new Promise((resolve) => {
         exec(command, { timeout: TIMEOUT_MS, cwd: getWorkspacePath() }, (error, stdout, stderr) => {
-            let result = '';
-            if (error) {
-                result = `Error: ${error.message}\nStderr: ${stderr}`;
-            } else {
-                result = stdout || 'Command executed successfully with no output. (Note to AI: This means the command returned no data. If you were searching for information, reading a file, or expecting a specific result, it failed to find anything. Stop using tools for now and politely explain to the user that no information was found.)';
-            }
-            
+            // Report facts only: status + stdout + stderr. No editorializing — empty output is normal for mkdir, git add, etc.
+            let status = 'exit code: 0';
+            if (error?.killed) status = `timed out after ${TIMEOUT_MS / 1000}s (killed)`;
+            else if (typeof error?.code === 'number') status = `exit code: ${error.code}`;
+            else if (error) status = `error: ${error.message}`;
+
+            const parts = [status];
+            if (stdout) parts.push(`stdout:\n${stdout}`);
+            if (stderr) parts.push(`stderr:\n${stderr}`);
+            if (!stdout && !stderr) parts.push('(no output)');
+            let result = parts.join('\n');
+
             if (result.length > MAX_LENGTH) {
                 result = result.substring(0, MAX_LENGTH) + `\n\n[...OUTPUT TRUNCATED: Result exceeded ${MAX_LENGTH} chars. Constrain output with head, tail, or grep. Do not use curl/wget — use web_fetch instead.]`;
             }
