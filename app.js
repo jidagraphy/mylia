@@ -65,7 +65,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     startCronRunner(readyClient);
 });
 
-client.on(Events.InteractionCreate, async (interaction) => {
+const handleInteraction = async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     if (!isOwner(interaction.user.id)) {
         await interaction.reply({ content: 'Not allowed.', flags: MessageFlags.Ephemeral });
@@ -140,6 +140,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.editReply(greeting);
         }
     }
+};
+
+client.on(Events.InteractionCreate, async (interaction) => {
+    try {
+        await handleInteraction(interaction);
+    } catch (error) {
+        logError('Bot', `Failed to handle interaction: ${error.message}`);
+        const payload = { content: 'Sorry, something went wrong.', flags: MessageFlags.Ephemeral };
+        const send = interaction.deferred || interaction.replied ? interaction.editReply(payload) : interaction.reply(payload);
+        await send.catch(() => { });
+    }
 });
 
 client.on(Events.MessageCreate, async (message) => {
@@ -149,14 +160,14 @@ client.on(Events.MessageCreate, async (message) => {
 
     const userPrompt = message.content.replace(`<@${client.user.id}>`, '').trim();
 
-    const imageAttachments = [...message.attachments.values()].filter(a => a.contentType?.startsWith('image/'));
-    const images = await Promise.all(imageAttachments.map(async (attachment) => {
-        const res = await fetch(attachment.url);
-        const buffer = await res.arrayBuffer();
-        return { data: Buffer.from(buffer).toString('base64'), mimeType: attachment.contentType.split(';')[0] };
-    }));
-
     try {
+        const imageAttachments = [...message.attachments.values()].filter(a => a.contentType?.startsWith('image/'));
+        const images = await Promise.all(imageAttachments.map(async (attachment) => {
+            const res = await fetch(attachment.url);
+            const buffer = await res.arrayBuffer();
+            return { data: Buffer.from(buffer).toString('base64'), mimeType: attachment.contentType.split(';')[0] };
+        }));
+
         await runAgentTurn({
             channel: message.channel,
             client,
@@ -179,5 +190,7 @@ const shutdown = async () => {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+// Log instead of exiting on stray async errors. uncaughtException is deliberately left to crash: sync state may be corrupt.
+process.on('unhandledRejection', (reason) => logError('Process', `Unhandled rejection: ${reason?.stack || reason}`));
 
 client.login(getConfig().DISCORD_BOT_TOKEN);

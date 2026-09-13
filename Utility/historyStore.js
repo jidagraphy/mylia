@@ -27,7 +27,11 @@ const readJsonl = (filePath) => {
     if (!filePath || !fs.existsSync(filePath)) return [];
     try {
         const data = fs.readFileSync(filePath, 'utf8');
-        return data.split('\n').filter(line => line.trim() !== '').map(line => JSON.parse(line));
+        // Parse per line: one corrupt line (e.g. crash mid-append) must not drop the whole session.
+        return data.split('\n').filter(line => line.trim() !== '').flatMap((line) => {
+            try { return [JSON.parse(line)]; }
+            catch { logError('History', `Skipping corrupt line in ${filePath}`); return []; }
+        });
     } catch (error) {
         logError('History', `Failed to read JSONL ${filePath}: ${error.message}`);
         return [];

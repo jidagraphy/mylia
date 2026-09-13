@@ -122,19 +122,19 @@ const runAgentTurn = async ({
             for (const toolCall of response.tool_calls) {
                 const toolHandler = availableTools[toolCall.function.name];
                 if (toolHandler) {
-                    let parsedArgs = toolCall.function.arguments;
-                    if (typeof parsedArgs === 'string') {
-                        if (!parsedArgs.trim()) {
-                            parsedArgs = {};
-                        } else {
-                            try { parsedArgs = JSON.parse(parsedArgs); }
-                            catch (e) { logError('Tool', `Failed to parse args for ${toolCall.function.name}: ${e.message}`); parsedArgs = {}; }
-                        }
+                    // Bad JSON args or a throwing handler become an error result the model can see and retry,
+                    // instead of killing the whole turn.
+                    let rawResult;
+                    try {
+                        let parsedArgs = toolCall.function.arguments;
+                        if (typeof parsedArgs === 'string') parsedArgs = parsedArgs.trim() ? JSON.parse(parsedArgs) : {};
+                        const argsStr = Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : '';
+                        log('Tool', `${toolCall.function.name}(${argsStr}) ...`);
+                        rawResult = await toolHandler(parsedArgs, { contextKey });
+                    } catch (e) {
+                        logError('Tool', `${toolCall.function.name} failed: ${e.message}`);
+                        rawResult = `Error: tool "${toolCall.function.name}" failed: ${e.message}`;
                     }
-
-                    const argsStr = Object.keys(parsedArgs).length > 0 ? JSON.stringify(parsedArgs) : '';
-                    log('Tool', `${toolCall.function.name}(${argsStr}) ...`);
-                    const rawResult = await toolHandler(parsedArgs, { contextKey });
 
                     let resultText = rawResult;
                     let pendingImage = null;
