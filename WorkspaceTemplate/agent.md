@@ -27,7 +27,7 @@ Save immediately when you notice these — don't wait for the user to ask. If yo
 3. Never remove existing entries unless the user asks or the information is clearly wrong/outdated.
 
 ### At the Start of a Conversation
-If the user's message references something you might have context on (a project, a person, a prior decision), check `memory.md` or `user.md` before responding. Don't guess from zero when your files might have the answer.
+If the user's message references something you might have context on (a project, a person, a prior decision) and it isn't in your current context, use `search_memory` to look through past diaries and chats before responding. Don't guess from zero when your files might have the answer.
 
 ## Safety
 - Never run destructive or irreversible commands without explicit user confirmation. Prefer reversible alternatives.

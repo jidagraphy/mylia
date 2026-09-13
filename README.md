@@ -137,6 +137,7 @@ mylia install-skill <github-repo-url>
 | `send_attachment` | Attach a file to the next Discord reply |
 | `view_skill` | Read a skill's instructions |
 | `compact_history` | Summarize the current session into a diary |
+| `search_memory` | Keyword search over past diaries and chat logs in the current channel/DM |
 | `create_cron` | Schedule a prompt on a cron or one-shot schedule |
 | `list_crons` | List all scheduled entries |
 | `delete_cron` | Delete a scheduled entry |
