@@ -78,7 +78,7 @@ const declaration = {
             properties: {
                 query: {
                     type: "string",
-                    description: "Keywords, space-separated. Use short stems without particles (조사), e.g. '믹스' not '믹스를'. Matches any keyword, ignoring spacing; results with more keywords rank higher. Try synonyms or the other language if nothing is found."
+                    description: "Keywords, space-separated. Use short word stems without grammatical endings or particles. Matches any keyword, ignoring case and spacing; results with more keywords rank higher. Try synonyms or another language if nothing is found."
                 }
             },
             required: ["query"]
