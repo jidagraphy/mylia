@@ -78,6 +78,8 @@ mylia config
 
 Set your `DISCORD_BOT_TOKEN` (from step 1) and your AI provider's API key. You can also edit `~/.mylia/config.json` directly.
 
+Add your Discord user ID to `OWNER_IDS` — mylia ignores everyone else, and ignores everyone if the list is empty. To get your ID: Discord **Settings > Advanced > Developer Mode**, then right-click your name > **Copy User ID**. IDs must be strings: `"OWNER_IDS": ["123456789012345678"]`.
+
 ### 5. Run
 
 ```bash

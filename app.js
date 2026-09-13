@@ -2,7 +2,7 @@ const os = require('os');
 const { getConfig } = require('./Utility/config');
 
 const { setupWorkspaceEnvironment } = require('./Utility/workspaceSetup');
-const { Client, GatewayIntentBits, Partials, Events } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Events, MessageFlags } = require('discord.js');
 const { chat } = require('./Clients/provider');
 const { appendToHistory, getReplaySize, getTrimmedReplaySize, HISTORY_CHAR_BUDGET, getLastUserMessageTimestamp } = require('./Utility/historyStore');
 const { buildSystemInstruction } = require('./Utility/contextBuilder');
@@ -26,7 +26,10 @@ const client = new Client({
     partials: [Partials.Channel],
 });
 
-const STARTUP_PROMPT = `A new session has just started. Greet the user in your persona — keep it to 2-3 sentences.`;
+// Fail closed: empty/missing OWNER_IDS means nobody can use the bot. Read per call so edits apply without restart.
+const isOwner = (userId) => (getConfig()?.OWNER_IDS || []).includes(userId);
+
+const STARTUP_PROMPT =`A new session has just started. Greet the user in your persona — keep it to 2-3 sentences.`;
 
 const runSessionStartup = async ({ channel, actor } = {}) => {
     const contextKey = getContextKey(channel, actor);
@@ -39,6 +42,7 @@ const runSessionStartup = async ({ channel, actor } = {}) => {
 
 client.once(Events.ClientReady, async (readyClient) => {
     log('Bot', `Ready! Logged in as ${readyClient.user.tag}`);
+    if (!getConfig()?.OWNER_IDS?.length) logError('Bot', 'OWNER_IDS not set in config.json — ignoring all users.');
     setClient(readyClient);
 
     await readyClient.application.commands.set([
@@ -63,6 +67,10 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
+    if (!isOwner(interaction.user.id)) {
+        await interaction.reply({ content: 'Not allowed.', flags: MessageFlags.Ephemeral });
+        return;
+    }
 
     if (interaction.commandName === 'status') {
         const contextKey = getContextKey(interaction.channel, interaction.user);
@@ -136,6 +144,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot) return;
+    if (!isOwner(message.author.id)) return;
     if (message.guild && !message.mentions.has(client.user.id)) return;
 
     const userPrompt = message.content.replace(`<@${client.user.id}>`, '').trim();

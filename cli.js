@@ -42,11 +42,14 @@ const ensureSetup = async () => {
         process.exit(1);
     }
 
-    const { DISCORD_BOT_TOKEN, AI_PROVIDER, OPENROUTER_API_KEY, GEMINI_API_KEY, OLLAMA_URL } = config;
+    const { DISCORD_BOT_TOKEN, OWNER_IDS, AI_PROVIDER, OPENROUTER_API_KEY, GEMINI_API_KEY, OLLAMA_URL } = config;
 
     let valid = true;
 
     if (!DISCORD_BOT_TOKEN || DISCORD_BOT_TOKEN === 'your_discord_bot_token_here') {
+        valid = false;
+    } else if (!OWNER_IDS?.length) {
+        console.log('⚠️  OWNER_IDS is empty — add your Discord user ID (as a string) so mylia will respond to you.');
         valid = false;
     } else if (AI_PROVIDER === 'openrouter' && (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key_here')) {
         valid = false;
