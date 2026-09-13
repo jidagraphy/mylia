@@ -71,7 +71,7 @@ const chunkReply = (answer) => {
     return chunks;
 };
 
-const runAgentTurn = async ({
+const runTurnNow = async ({
     channel,
     client,
     prompt,
@@ -212,6 +212,20 @@ const runAgentTurn = async ({
         } catch { /* channel gone or send failed */ }
         throw error;
     }
+};
+
+// One turn at a time per session: concurrent turns (e.g. cron + chat) would interleave their
+// tool sequences in the same JSONL, and groupMessages would silently drop them on replay.
+// ponytail: a hung turn blocks its session until provider fetch times out (undici ~300s); add an explicit per-turn timeout if that bites.
+const sessionQueues = new Map();
+
+const runAgentTurn = (opts) => {
+    const key = getContextKey(opts.channel, opts.actor ?? null);
+    const run = (sessionQueues.get(key) || Promise.resolve()).then(() => runTurnNow(opts));
+    const settled = run.catch(() => { });
+    sessionQueues.set(key, settled);
+    settled.then(() => { if (sessionQueues.get(key) === settled) sessionQueues.delete(key); });
+    return run;
 };
 
 module.exports = { runAgentTurn };

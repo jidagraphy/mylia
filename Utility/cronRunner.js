@@ -30,20 +30,24 @@ const fireEntry = async (entry, firedTime) => {
 
         log('Cron', `Firing ${entry.id} (${entry.type}) → channel ${entry.channelId}`);
 
-        await runAgentTurn({
-            channel,
-            client,
-            prompt: entry.prompt,
-            actor: null,
-            trigger: 'cron',
-            typing: false,
-            historyBudget: entry.includeHistory ? null : 0,
-        });
-
-        if (entry.type === 'at') {
-            updateEntry(entry.id, { fired: true, lastFiredAt: new Date().toISOString() });
-        } else {
-            updateEntry(entry.id, { lastFiredAt: firedTime.toISOString() });
+        try {
+            await runAgentTurn({
+                channel,
+                client,
+                prompt: entry.prompt,
+                actor: null,
+                trigger: 'cron',
+                typing: false,
+                historyBudget: entry.includeHistory ? null : 0,
+            });
+        } finally {
+            // Mark fired even if the turn threw — otherwise the next tick re-fires it every minute,
+            // each time a full LLM turn.
+            if (entry.type === 'at') {
+                updateEntry(entry.id, { fired: true, lastFiredAt: new Date().toISOString() });
+            } else {
+                updateEntry(entry.id, { lastFiredAt: firedTime.toISOString() });
+            }
         }
     } catch (e) {
         logError('Cron', `Failed to fire ${entry.id}: ${e.message}`);
