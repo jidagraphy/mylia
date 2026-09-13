@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getWorkspacePath } = require('../Utility/workspaceSetup');
+const { looseRegex } = require('../Utility/textMatch');
 
 // Surgical edits only: the model never retypes a whole file, so it can't silently drop content.
 const handler = async ({ filePath, oldText, newText }) => {
@@ -27,16 +28,34 @@ const handler = async ({ filePath, oldText, newText }) => {
         }
 
         if (previous === null) return `Error: "${filePath}" does not exist. To create it, omit oldText.`;
-        const matches = previous.split(oldText).length - 1;
-        if (matches === 0) return `Error: oldText not found in "${filePath}". Use read_file and copy the text exactly, including whitespace.`;
-        if (matches > 1) return `Error: oldText matches ${matches} times in "${filePath}". Include more surrounding text so it matches exactly once.`;
+        const ambiguous = (n) => `Error: oldText matches ${n} times in "${filePath}". Include more surrounding text so it matches exactly once.`;
+        const notFound = `Error: oldText not found in "${filePath}". Use read_file and copy the text exactly.`;
+
+        let content = previous;
+        let start, end, loose = false;
+        const exact = previous.split(oldText).length - 1;
+        if (exact > 1) return ambiguous(exact);
+        if (exact === 1) {
+            start = previous.indexOf(oldText);
+            end = start + oldText.length;
+        } else {
+            // Fallback: ignore whitespace + Unicode normalization. Still must match exactly once.
+            // A loose edit saves the file NFC-normalized (visually identical).
+            content = previous.normalize('NFC');
+            const pattern = looseRegex(oldText, 'gu');
+            const found = pattern ? [...content.matchAll(pattern)] : [];
+            if (found.length === 0) return notFound;
+            if (found.length > 1) return ambiguous(found.length);
+            start = found[0].index;
+            end = start + found[0][0].length;
+            loose = true;
+        }
 
         fs.copyFileSync(resolved, `${resolved}.bak`);
         // slice instead of String.replace: newText may contain "$&"-style patterns.
-        const at = previous.indexOf(oldText);
-        fs.writeFileSync(resolved, previous.slice(0, at) + newText + previous.slice(at + oldText.length), 'utf8');
-        const line = previous.slice(0, at).split('\n').length;
-        return `Replaced 1 match in "${filePath}" (line ${line}).`;
+        fs.writeFileSync(resolved, content.slice(0, start) + newText + content.slice(end), 'utf8');
+        const line = content.slice(0, start).split('\n').length;
+        return `Replaced 1 match in "${filePath}" (line ${line})${loose ? ', matched ignoring whitespace differences' : ''}.`;
     } catch (error) {
         return `Error editing file: ${error.message}`;
     }

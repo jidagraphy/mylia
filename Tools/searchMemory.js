@@ -3,6 +3,7 @@ const path = require('path');
 const { getWorkspacePath } = require('../Utility/workspaceSetup');
 const { getFullHistory } = require('../Utility/historyStore');
 const { getSessionId } = require('../Utility/sessionManager');
+const { looseRegex } = require('../Utility/textMatch');
 
 // Output stays small on purpose: tool results are replayed in later turns and context is budgeted.
 const MAX_RESULTS = 8;
@@ -10,10 +11,10 @@ const SNIPPET_CHARS = 200;
 
 const localTime = (iso) => (iso ? new Date(iso).toLocaleString('sv-SE').slice(0, 16) : '?');
 
-const makeSnippet = (text, terms) => {
+const makeSnippet = (text, patterns) => {
     const flat = text.replace(/\s+/g, ' ').trim();
-    const lower = flat.toLowerCase();
-    const at = Math.min(...terms.map(t => lower.indexOf(t)).filter(i => i >= 0));
+    const found = patterns.map(p => flat.search(p)).filter(i => i >= 0);
+    const at = found.length ? Math.min(...found) : 0;
     const start = Math.max(0, at - 60);
     const end = start + SNIPPET_CHARS;
     return (start > 0 ? '…' : '') + flat.slice(start, end) + (end < flat.length ? '…' : '');
@@ -24,7 +25,9 @@ const makeSnippet = (text, terms) => {
 const handler = async ({ query }, { contextKey } = {}) => {
     if (typeof query !== 'string' || !query.trim()) return 'Error: query is required.';
 
-    const terms = [...new Set(query.toLowerCase().split(/\s+/).filter(Boolean))];
+    // Each keyword matches case-insensitively, ignoring spacing and NFC/NFD differences ("믹스체인" finds "믹스 체인").
+    const terms = [...new Set(query.normalize('NFC').toLowerCase().split(/\s+/).filter(Boolean))];
+    const patterns = terms.map(t => looseRegex(t, 'iu'));
     const suffix = contextKey ? `_${contextKey}` : '';
     const currentSessionId = contextKey ? getSessionId(contextKey) : null;
     const ws = getWorkspacePath();
@@ -33,9 +36,9 @@ const handler = async ({ query }, { contextKey } = {}) => {
     const hits = [];
     const consider = (text, label, sortKey) => {
         if (!text) return;
-        const lower = text.toLowerCase();
-        const score = terms.filter(t => lower.includes(t)).length;
-        if (score > 0) hits.push({ score, sortKey, label, text });
+        const normalized = text.normalize('NFC');
+        const score = patterns.filter(p => p.test(normalized)).length;
+        if (score > 0) hits.push({ score, sortKey, label, text: normalized });
     };
 
     const memoryDir = path.join(ws, 'Memory');
@@ -60,7 +63,7 @@ const handler = async ({ query }, { contextKey } = {}) => {
     if (hits.length === 0) return `No matches for "${query}" in past diaries or chats.`;
 
     hits.sort((a, b) => b.score - a.score || String(b.sortKey).localeCompare(String(a.sortKey)));
-    const shown = hits.slice(0, MAX_RESULTS).map(h => `- [${h.label}] ${makeSnippet(h.text, terms)}`);
+    const shown = hits.slice(0, MAX_RESULTS).map(h => `- [${h.label}] ${makeSnippet(h.text, patterns)}`);
     const more = hits.length > MAX_RESULTS ? ` (showing top ${MAX_RESULTS})` : '';
     return `${hits.length} match${hits.length === 1 ? '' : 'es'} for "${query}"${more}:\n${shown.join('\n')}`;
 };
@@ -75,7 +78,7 @@ const declaration = {
             properties: {
                 query: {
                     type: "string",
-                    description: "Keywords, space-separated. Matches any keyword; results with more keywords rank higher. Try synonyms or other languages if nothing is found."
+                    description: "Keywords, space-separated. Use short stems without particles (조사), e.g. '믹스' not '믹스를'. Matches any keyword, ignoring spacing; results with more keywords rank higher. Try synonyms or the other language if nothing is found."
                 }
             },
             required: ["query"]
