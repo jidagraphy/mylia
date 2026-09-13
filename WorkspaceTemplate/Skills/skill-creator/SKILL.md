@@ -70,7 +70,7 @@ Not great:
 > ALWAYS read the file before editing. NEVER skip this step.
 
 Better:
-> Read the file before editing — edit_file replaces the entire file content, so without reading first you'll lose everything that was already there.
+> Read the file before replacing text — edit_file's oldText must match the file exactly, so copying it from the real content avoids failed edits.
 
 **Keep it lean.** Remove instructions that aren't pulling their weight. If something is obvious or standard behavior, don't waste lines on it. Aim for under 200 lines — if you're going longer, you're probably overspecifying.
 
@@ -112,7 +112,7 @@ Constraints, edge cases, or important details.
 
 ## Creating the Skill
 
-1. Create the folder and file using `edit_file`:
+1. Create the file with `edit_file`, passing only `newText` (the folder is created automatically):
    - Path: `Skills/<skill-name>/SKILL.md`
    - Folder name must match the `name` field in frontmatter
 
@@ -126,7 +126,7 @@ If the user wants to improve a skill:
 
 1. Use `view_skill` to read the current version.
 2. Discuss what needs to change.
-3. Use `edit_file` to update `Skills/<skill-name>/SKILL.md`.
+3. Use `edit_file` with `oldText` (copied exactly) and `newText` to change the relevant parts of `Skills/<skill-name>/SKILL.md`.
 4. Read it back to confirm.
 
 When improving, think about generalization — the skill should work across many situations, not just the specific example that prompted the edit. If something keeps going wrong, try a different approach rather than adding more rigid constraints.
@@ -137,7 +137,7 @@ Your workspace root is `~/.mylia/`. Skills live at `Skills/<skill-name>/SKILL.md
 
 Available tools that skills can reference:
 - `read_file` — Read any file (relative paths resolve from workspace root)
-- `edit_file` — Create or overwrite a file (auto-backs up to .bak)
+- `edit_file` — Append to or create a file (`newText`), or replace an exact match (`oldText` → `newText`). Auto-backs up to .bak
 - `execute_shell` — Run shell commands (30s timeout, 5000 char output limit)
 - `web_fetch` — Fetch and clean a URL's content
 - `view_skill` — Read another skill's SKILL.md

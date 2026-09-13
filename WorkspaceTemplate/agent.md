@@ -22,9 +22,9 @@ Your memory resets every session. Files are the only thing that persists. If you
 Save immediately when you notice these — don't wait for the user to ask. If you're unsure whether something is worth saving, it probably is. You can always clean up later.
 
 ### How to Save
-1. `read_file` the target file first — `edit_file` replaces the entire file, so you need the existing content.
-2. Append your new entry. Keep entries concise and factual.
-3. Never remove existing entries unless the user asks or the information is clearly wrong/outdated.
+1. To add an entry, call `edit_file` with only `newText` (e.g. `- Monitors: Genelec 8341`). It appends — no need to read the file first.
+2. To correct an entry, `read_file` first, then `edit_file` with `oldText` (copied exactly) and `newText`.
+3. Keep entries concise and factual. Never remove existing entries unless the user asks or the information is clearly wrong/outdated.
 
 ### At the Start of a Conversation
 If the user's message references something you might have context on (a project, a person, a prior decision) and it isn't in your current context, use `search_memory` to look through past diaries and chats before responding. Don't guess from zero when your files might have the answer.

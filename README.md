@@ -132,7 +132,7 @@ mylia install-skill <github-repo-url>
 | `execute_shell` | Run shell commands on the host (configurable timeout) |
 | `web_fetch` | Fetch a web page as clean text |
 | `read_file` | Read any file |
-| `edit_file` | Edit a file (auto-backs up to `.bak`) |
+| `edit_file` | Append to a file, or replace an exact text match (auto-backs up to `.bak`) |
 | `view_image` | Load an image for vision-capable models |
 | `send_attachment` | Attach a file to the next Discord reply |
 | `view_skill` | Read a skill's instructions |

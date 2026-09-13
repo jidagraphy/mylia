@@ -30,7 +30,7 @@ const declaration = {
     type: "function",
     function: {
         name: "read_file",
-        description: "Reads the content of a file. Use this to check the current content of memory.md, soul.md, user.md, or any other file before making changes. Relative paths resolve from the workspace root. Always use read_file before edit_file.",
+        description: "Reads the content of a file. Use this to check the current content of memory.md, soul.md, user.md, or any other file before making changes. Relative paths resolve from the workspace root. Read before replacing text with edit_file, so oldText matches exactly.",
         parameters: {
             type: "object",
             properties: {
