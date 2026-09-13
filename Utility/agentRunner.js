@@ -41,6 +41,20 @@ const chatWithRetry = async (system, tools, context) => {
 const DISCORD_MESSAGE_LIMIT = 2000;
 const MIN_SPLIT_LOOKBACK = 1000;
 
+// Only the main argument is shown — never contents like newText, since channels can be public.
+const TOOL_ARG_KEYS = ['filePath', 'command', 'url', 'query', 'skillName', 'schedule', 'id'];
+
+const describeToolCall = (toolCall) => {
+    let args = toolCall.function.arguments;
+    if (typeof args === 'string') {
+        try { args = JSON.parse(args); } catch { args = {}; }
+    }
+    const key = TOOL_ARG_KEYS.find(k => typeof args?.[k] === 'string' && args[k].trim());
+    const value = key ? args[key].replace(/\s+/g, ' ').replace(/`/g, "'").trim() : '';
+    const short = value.length > 60 ? `${value.slice(0, 57)}…` : value;
+    return `-# 🔧 ${toolCall.function.name}${short ? ` \`${short}\`` : ''}`;
+};
+
 const applyProviderError = (response) => {
     if (!response.error) return;
     const message = formatProviderError({ ...response.error, providerName: getProviderName() });
@@ -118,6 +132,19 @@ const runTurnNow = async ({
 
             appendToHistory(response, contextKey);
             context.push(response);
+
+            // Live feedback: this step's text + which tools it calls, sent before the tools run.
+            // Skipped for crons so scheduled output stays just the result.
+            if (trigger !== 'cron') {
+                const toolLines = response.tool_calls.map(describeToolCall).join('\n');
+                const stepText = response.content?.trim();
+                try {
+                    for (const chunk of chunkReply(stepText ? `${stepText}\n${toolLines}` : toolLines)) await channel.send(chunk);
+                    if (typingInterval) channel.sendTyping().catch(() => { });
+                } catch (e) {
+                    logError('Reply', `Failed to send step message: ${e.message}`);
+                }
+            }
 
             for (const toolCall of response.tool_calls) {
                 const toolHandler = availableTools[toolCall.function.name];
