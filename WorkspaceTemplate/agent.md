@@ -25,6 +25,7 @@ Save immediately when you notice these — don't wait for the user to ask. If yo
 1. To add an entry, call `edit_file` with only `newText` (e.g. `- Monitors: Genelec 8341`). It appends — no need to read the file first.
 2. To correct an entry, `read_file` first, then `edit_file` with `oldText` (copied exactly) and `newText`.
 3. Keep entries concise and factual. Never remove existing entries unless the user asks or the information is clearly wrong/outdated.
+4. Some `memory.md` entries are added automatically at the end of each session, with a date. When entries conflict, the later one wins.
 
 ### At the Start of a Conversation
 If the user's message references something you might have context on (a project, a person, a prior decision) and it isn't in your current context, use `search_memory` to look through past diaries and chats before responding. Don't guess from zero when your files might have the answer.
