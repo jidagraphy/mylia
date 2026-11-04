@@ -146,6 +146,35 @@ Tools can be disabled individually via `disabled_tools` in `config.json`.
 
 ---
 
+## Scheduled Tasks
+
+Crons live in `~/.mylia/crons.json` and are created with the `create_cron` tool (or by editing the file — it is re-read on every tick, so no restart is needed).
+
+```json
+{
+  "id": "cron_1793801995901",
+  "type": "cron",
+  "schedule": "0 23 * * *",
+  "timezone": "Asia/Seoul",
+  "channelId": "123456789012345678",
+  "prompt": "Send me today's spending report.",
+  "includeHistory": true,
+  "historyCharBudget": 10000,
+  "enabled": true
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `schedule` | Cron expression, or an ISO timestamp for a one-shot (`type: "at"`) |
+| `timezone` | IANA timezone for cron expressions; defaults to the system timezone |
+| `channelId` | Discord channel the result is posted to |
+| `prompt` | What the agent receives when the cron fires |
+| `includeHistory` | `false` (default): run with no chat history. `true`: include the channel's session history |
+| `historyCharBudget` | Optional, only with `includeHistory: true`. Characters of history for this cron, overriding `agent.historyCharBudget` in `config.json` (the window used for normal chat). Use a small value when a job only needs its own recent reports |
+
+---
+
 ## Disclaimer
 
 This project is in active development and primarily made for personal use. Exercise caution if adapting for production.

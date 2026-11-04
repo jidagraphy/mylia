@@ -38,7 +38,11 @@ const fireEntry = async (entry, firedTime) => {
                 actor: null,
                 trigger: 'cron',
                 typing: false,
-                historyBudget: entry.includeHistory ? null : 0,
+                // includeHistory: false → no history; true → config agent.historyCharBudget,
+                // unless the entry sets its own historyCharBudget (chars).
+                historyBudget: !entry.includeHistory ? 0
+                    : (Number.isFinite(entry.historyCharBudget) && entry.historyCharBudget >= 0
+                        ? entry.historyCharBudget : null),
             });
         } finally {
             // Mark fired even if the turn threw — otherwise the next tick re-fires it every minute,

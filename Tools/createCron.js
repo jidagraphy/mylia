@@ -9,7 +9,7 @@ const detectType = (schedule) => {
     return 'cron';
 };
 
-const handler = async ({ schedule, channelId, prompt, timezone, includeHistory = false }) => {
+const handler = async ({ schedule, channelId, prompt, timezone, includeHistory = false, historyCharBudget }) => {
     if (typeof schedule !== 'string' || !schedule.trim()) {
         return 'Error: schedule is required.';
     }
@@ -18,6 +18,11 @@ const handler = async ({ schedule, channelId, prompt, timezone, includeHistory =
     }
     if (typeof prompt !== 'string' || !prompt.trim()) {
         return 'Error: prompt is required.';
+    }
+
+    if (historyCharBudget !== undefined && historyCharBudget !== null
+        && !(Number.isInteger(historyCharBudget) && historyCharBudget >= 0)) {
+        return 'Error: historyCharBudget must be a non-negative integer (characters).';
     }
 
     const client = getClient();
@@ -59,6 +64,7 @@ const handler = async ({ schedule, channelId, prompt, timezone, includeHistory =
         channelId,
         prompt,
         includeHistory,
+        ...(includeHistory && Number.isInteger(historyCharBudget) ? { historyCharBudget } : {}),
         enabled: true,
         createdAt: new Date().toISOString(),
         lastFiredAt: null,
@@ -97,6 +103,10 @@ const declaration = {
                 includeHistory: {
                     type: "boolean",
                     description: "Whether to include the channel's session history when this cron fires. Default false. Set true only when the task genuinely needs conversational context (e.g. summarising a chat). Self-contained tasks like trading cycles should leave this false."
+                },
+                historyCharBudget: {
+                    type: "integer",
+                    description: "Optional. Only used when includeHistory is true: how many characters of the channel's session history to include for this cron, overriding agent.historyCharBudget from config.json. Use a small budget (e.g. 10000) when the task only needs recent context such as its own previous reports."
                 }
             },
             required: ["schedule", "channelId", "prompt"]
