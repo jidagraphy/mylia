@@ -10,6 +10,9 @@ const { looseRegex } = require('../Utility/textMatch');
 
 const memoryDir = path.join(getWorkspacePath(), 'Memory');
 const MAX_FLUSH_FACTS = 3;
+// The model sometimes copies a saved line's "(YYYY-MM-DD)" tag into its output.
+// Strip it so dates don't stack and the dedup check below can match the saved line.
+const TRAILING_DATES = /(\s*\(\d{4}-\d{2}-\d{2}\))+\s*$/;
 
 const readOrEmpty = (filePath) => {
     try { return fs.readFileSync(filePath, 'utf8'); }
@@ -41,7 +44,7 @@ List new facts from the transcript worth remembering permanently: stable prefere
     const output = await complete(prompt, systemPrompt);
     const known = (memory + '\n' + user).normalize('NFC');
     const facts = (output || '').split('\n')
-        .map(line => line.trim())
+        .map(line => line.trim().replace(TRAILING_DATES, ''))
         .filter(line => line.startsWith('- ') && line.length > 2)
         .filter(line => !looseRegex(line.slice(2), 'u')?.test(known))
         .slice(0, MAX_FLUSH_FACTS);
