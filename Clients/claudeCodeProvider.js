@@ -60,7 +60,13 @@ const runClaudeCode = ({ args, promptText, onToolCalls }) => new Promise((resolv
 
     // --setting-sources '': skip user/project settings, so the owner's own Claude Code setup
     // (global CLAUDE.md, hooks, plugins like a Discord channel) never leaks into the persona. Login is unaffected.
-    const child = spawn(config.CLAUDE_CODE_BIN || 'claude', ['-p', '--output-format', 'stream-json', '--verbose', '--setting-sources', '', ...args], {
+    // autoMemoryEnabled false: memory.md is the only memory; Claude Code's own memory folder would split it in two.
+    const child = spawn(config.CLAUDE_CODE_BIN || 'claude', [
+        '-p', '--output-format', 'stream-json', '--verbose',
+        '--setting-sources', '',
+        '--settings', JSON.stringify({ autoMemoryEnabled: false }),
+        ...args,
+    ], {
         cwd: getWorkspacePath(),
         env: buildChildEnvironment(),
     });

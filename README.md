@@ -226,7 +226,7 @@ With `"AI_PROVIDER": "claudecode"`, mylia runs each message through the official
 
 - **Sessions:** each mylia session maps to one Claude Code session. `/new` (or the idle timeout) starts a fresh one; diaries are still written from mylia's own log.
 - **Crons:** `includeHistory: false` runs fresh; `true` continues that channel's Claude session. Set `"model"` on a cron to run it on a cheaper model.
-- **Isolation:** runs ignore your own Claude Code settings (global `CLAUDE.md`, hooks, plugins), so your personal setup doesn't leak into the persona. The working directory is `~/.mylia/`.
+- **Isolation:** runs ignore your own Claude Code settings (global `CLAUDE.md`, hooks, plugins), so your personal setup doesn't leak into the persona. Claude Code's own auto-memory is off; `memory.md` stays the only memory. The working directory is `~/.mylia/`.
 - **Permissions:** runs use Claude Code's `auto` permission mode, where a classifier blocks risky actions. Failed runs are never retried automatically, since they may already have run commands.
 - **Terms:** this is meant for one person using their own subscription. Don't let other people use a bot that runs on your Claude login.
 
