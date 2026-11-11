@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { spawn, execSync } = require('child_process');
+const { spawn, execSync, execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -138,11 +138,15 @@ const logs = () => {
 const configure = () => {
     setupWorkspaceEnvironment();
     const configPath = require('./Utility/config').CONFIG_FILE;
-    const openCmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
 
     console.log(`Opening config: ${configPath}`);
     console.log(`(If this doesn't work, edit it manually: vim ${configPath})`);
-    require('child_process').exec(`${openCmd} "${configPath}"`);
+
+    // ponytail: execFile, not exec — no shell, so spaces in the path are safe.
+    // Windows `start` is a cmd builtin and takes a quoted first arg as the window title,
+    // hence the empty title argument.
+    if (process.platform === 'win32') execFile('cmd', ['/c', 'start', '', configPath]);
+    else execFile(process.platform === 'darwin' ? 'open' : 'xdg-open', [configPath]);
 };
 
 
