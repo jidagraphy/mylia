@@ -10,6 +10,7 @@ const CATEGORIES = {
     TRUNCATED: 'truncated',
     UPSTREAM: 'upstream',
     NETWORK: 'network',
+    TIMEOUT: 'timeout',
     MODEL_NOT_FOUND: 'model_not_found',
     UNKNOWN: 'unknown',
 };
@@ -22,6 +23,7 @@ const messageFor = {
     truncated: () => `[response cut off — hit token limit]`,
     upstream: (p) => `${p} is having issues right now. Try again shortly.`,
     network: (p) => `Couldn't reach ${p} — network issue.`,
+    timeout: (p) => `${p} took too long and was stopped.`,
     model_not_found: (p, detail) => `${p}: ${detail || 'requested model not available'}.`,
     unknown: (p, detail) => `${p} error${detail ? `: ${detail}` : ''}.`,
 };

@@ -43,6 +43,7 @@ const fireEntry = async (entry, firedTime) => {
                 historyBudget: !entry.includeHistory ? 0
                     : (Number.isFinite(entry.historyCharBudget) && entry.historyCharBudget >= 0
                         ? entry.historyCharBudget : null),
+                modelOverride: entry.model || null,
             });
         } finally {
             // Mark fired even if the turn threw — otherwise the next tick re-fires it every minute,

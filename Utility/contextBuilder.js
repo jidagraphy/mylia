@@ -10,12 +10,18 @@ const ADVISORY_THRESHOLD_RATIO = getConfig()?.agent?.advisoryThresholdRatio || 0
 const ADVISORY_THRESHOLD = HISTORY_CHAR_BUDGET * ADVISORY_THRESHOLD_RATIO;
 
 const agentMdPath = path.join(getWorkspacePath(), 'agent.md');
+const agentClaudeCodeMdPath = path.join(getWorkspacePath(), 'agent-claudecode.md');
 const soulFile = path.join(getWorkspacePath(), 'soul.md');
 const userFile = path.join(getWorkspacePath(), 'user.md');
 const memoryFile = path.join(getWorkspacePath(), 'memory.md');
 const memoryDir = path.join(getWorkspacePath(), 'Memory');
 
-const loadAgentIdentity = () => `=== AGENT ===\n${fs.readFileSync(agentMdPath, 'utf-8').trim()}`;
+// Claude Code brings its own tools and history, so it gets its own agent file, no Mylia tool hints,
+// and a system prompt that stays identical between turns (changing it would break Claude's prompt cache).
+const usesClaudeCode = () => getConfig()?.AI_PROVIDER === 'claudecode';
+
+const loadAgentIdentity = () =>
+    `=== AGENT ===\n${fs.readFileSync(usesClaudeCode() ? agentClaudeCodeMdPath : agentMdPath, 'utf-8').trim()}`;
 
 const loadOptionalSection = (filePath, header) => {
     try {
@@ -59,6 +65,7 @@ const loadRecentSessionDiaries = (count = 2, contextKey = null) => {
 const loadContextPressureAdvisory = (contextKey, trigger) => {
     if (!contextKey) return '';
     if (trigger === 'cron') return '';
+    if (usesClaudeCode()) return ''; // Claude Code compacts its own context
 
     const replayChars = getReplaySize(contextKey);
     if (replayChars < ADVISORY_THRESHOLD) return '';
@@ -71,11 +78,15 @@ const loadAvailableSkills = () => {
     const skills = getInstalledSkills();
     if (skills.length === 0) return '';
 
+    const claudeCode = usesClaudeCode();
     let skillsList = '=== AVAILABLE SKILLS ===\n';
-    skillsList += 'You have access to specialized skill packages. If a task requires it, you MUST use the `view_skill` tool to read the skill\'s instructions before proceeding.\n\n';
+    skillsList += claudeCode
+        ? 'You have access to specialized skill packages. If a task requires it, you MUST read the skill\'s SKILL.md before proceeding.\n\n'
+        : 'You have access to specialized skill packages. If a task requires it, you MUST use the `view_skill` tool to read the skill\'s instructions before proceeding.\n\n';
 
     for (const skill of skills) {
-        skillsList += `- **${skill.name || skill.folder}**: ${skill.description}\n`;
+        const location = claudeCode ? ` (Skills/${skill.folder}/SKILL.md)` : '';
+        skillsList += `- **${skill.name || skill.folder}**${location}: ${skill.description}\n`;
     }
 
     return skillsList.trim();
@@ -93,7 +104,7 @@ const formatTimeSince = (iso) => {
 };
 
 const loadRuntimeContext = (turnContext = {}) => {
-    const { channel, client, actor, trigger, contextKey } = turnContext;
+    const { channel, client, actor, trigger, contextKey, modelOverride } = turnContext;
     const config = getConfig() || {};
 
     const lines = ['=== CURRENT CONTEXT ==='];
@@ -112,10 +123,10 @@ const loadRuntimeContext = (turnContext = {}) => {
     lines.push(`Host: ${os.hostname()} — ${os.platform()} ${os.release()} (user: ${os.userInfo().username})`);
 
     if (config.AI_PROVIDER || config.AI_MODEL) {
-        lines.push(`Model: ${config.AI_MODEL || 'unknown'} via ${config.AI_PROVIDER || 'unknown'}`);
+        lines.push(`Model: ${modelOverride || config.AI_MODEL || 'unknown'} via ${config.AI_PROVIDER || 'unknown'}`);
     }
 
-    if (contextKey) {
+    if (contextKey && !usesClaudeCode()) {
         const replayK = Math.round(getReplaySize(contextKey) / 1000);
         const budgetK = Math.round(HISTORY_CHAR_BUDGET / 1000);
         lines.push(`Replay: ~${replayK}k / ${budgetK}k chars of history budget`);
@@ -197,7 +208,7 @@ const buildSystemInstruction = (turnContext = {}) => {
         loadOptionalSection(memoryFile, 'LONG-TERM MEMORY'),
         loadRecentSessionDiaries(2, contextKey),
         loadContextPressureAdvisory(contextKey, trigger),
-        loadRuntimeContext(turnContext),
+        usesClaudeCode() ? '' : loadRuntimeContext(turnContext),
         loadAvailableChannels(turnContext.client),
     ].filter(Boolean);
 
@@ -210,4 +221,8 @@ const buildSystemInstruction = (turnContext = {}) => {
     return instruction;
 };
 
-module.exports = { buildSystemInstruction };
+// Per-turn context (time, channel, speaker) that changes every message. Claude Code gets it at the top of
+// the user message instead of in the system prompt; other providers already have it in the system prompt.
+const buildTurnContextNote = (turnContext = {}) => usesClaudeCode() ? loadRuntimeContext(turnContext) : '';
+
+module.exports = { buildSystemInstruction, buildTurnContextNote };

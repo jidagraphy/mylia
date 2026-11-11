@@ -7,7 +7,7 @@ const { chat } = require('./Clients/provider');
 const { appendToHistory, getReplaySize, getTrimmedReplaySize, HISTORY_CHAR_BUDGET, getLastUserMessageTimestamp } = require('./Utility/historyStore');
 const { buildSystemInstruction } = require('./Utility/contextBuilder');
 const { generateSessionDiary } = require('./Tools/compactHistory');
-const { checkAndRenewSession, getContextKey } = require('./Utility/sessionManager');
+const { checkAndRenewSession, getContextKey, getSessionId } = require('./Utility/sessionManager');
 const { toolDeclarations } = require('./Tools');
 const { log, error: logError } = require('./Utility/logger');
 const { runAgentTurn } = require('./Utility/agentRunner');
@@ -34,7 +34,9 @@ const STARTUP_PROMPT =`A new session has just started. Greet the user in your pe
 const runSessionStartup = async ({ channel, actor } = {}) => {
     const contextKey = getContextKey(channel, actor);
     const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger: 'slash_command', contextKey });
-    const response = await chat(systemInstruction, toolDeclarations, [{ role: 'user', content: STARTUP_PROMPT }]);
+    // resumeSession: the greeting opens the session that the next messages continue (claudecode).
+    const response = await chat(systemInstruction, toolDeclarations, [{ role: 'user', content: STARTUP_PROMPT }],
+        { sessionId: getSessionId(contextKey), resumeSession: true });
     const greeting = response.content?.trim() || null;
     if (greeting) appendToHistory({ role: 'assistant', content: greeting }, contextKey);
     return greeting;

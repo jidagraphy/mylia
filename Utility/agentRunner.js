@@ -1,8 +1,8 @@
 const { chat } = require('../Clients/provider');
 const { appendToHistory, getSessionHistoryByChars, HISTORY_CHAR_BUDGET } = require('./historyStore');
-const { buildSystemInstruction } = require('./contextBuilder');
+const { buildSystemInstruction, buildTurnContextNote } = require('./contextBuilder');
 const { generateSessionDiary } = require('../Tools/compactHistory');
-const { checkAndRenewSession, getContextKey } = require('./sessionManager');
+const { checkAndRenewSession, getContextKey, getSessionId } = require('./sessionManager');
 const { availableTools, toolDeclarations } = require('../Tools');
 const { getConfig } = require('./config');
 const { formatProviderError, CATEGORIES } = require('./errorMessages');
@@ -17,7 +17,7 @@ const RETRY_ENABLED = _retryCfg.enabled ?? true;
 const RETRY_MAX = _retryCfg.maxRetries ?? 1;
 const RETRY_DELAY_MS = _retryCfg.delayMs ?? 5000;
 
-const PROVIDER_DISPLAY_NAMES = { gemini: 'Gemini', openrouter: 'OpenRouter', ollama: 'Ollama' };
+const PROVIDER_DISPLAY_NAMES = { gemini: 'Gemini', openrouter: 'OpenRouter', ollama: 'Ollama', claudecode: 'Claude Code' };
 const getProviderName = () => PROVIDER_DISPLAY_NAMES[getConfig()?.AI_PROVIDER] || 'Provider';
 
 // Categories where automatic retry makes sense (transient, not a permanent failure).
@@ -29,12 +29,12 @@ const RETRYABLE_CATEGORIES = new Set([
     CATEGORIES.UNKNOWN,
 ]);
 
-const chatWithRetry = async (system, tools, context) => {
-    let response = await chat(system, tools, context);
-    for (let i = 0; i < RETRY_MAX && RETRY_ENABLED && response.error && RETRYABLE_CATEGORIES.has(response.error.category); i++) {
+const chatWithRetry = async (system, tools, context, turnOptions) => {
+    let response = await chat(system, tools, context, turnOptions);
+    for (let i = 0; i < RETRY_MAX && RETRY_ENABLED && response.error && response.error.retryable !== false && RETRYABLE_CATEGORIES.has(response.error.category); i++) {
         log('Provider', `Retryable error (${response.error.category}), retry ${i + 1}/${RETRY_MAX} in ${RETRY_DELAY_MS}ms…`);
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
-        response = await chat(system, tools, context);
+        response = await chat(system, tools, context, turnOptions);
     }
     return response;
 };
@@ -42,7 +42,8 @@ const DISCORD_MESSAGE_LIMIT = 2000;
 const MIN_SPLIT_LOOKBACK = 1000;
 
 // Only the main argument is shown — never contents like newText, since channels can be public.
-const TOOL_ARG_KEYS = ['filePath', 'command', 'url', 'query', 'skillName', 'schedule', 'id'];
+// file_path / pattern are Claude Code's own tool argument names.
+const TOOL_ARG_KEYS = ['filePath', 'file_path', 'command', 'url', 'query', 'pattern', 'skillName', 'schedule', 'id'];
 
 const describeToolCall = (toolCall) => {
     let args = toolCall.function.arguments;
@@ -94,6 +95,7 @@ const runTurnNow = async ({
     trigger = 'message',
     typing = true,
     historyBudget = null,
+    modelOverride = null,
 }) => {
     let typingInterval;
     try {
@@ -113,14 +115,37 @@ const runTurnNow = async ({
         const systemInstruction = buildSystemInstruction({ channel, client, actor, trigger, contextKey });
         const history = getSessionHistoryByChars(historyBudget ?? HISTORY_CHAR_BUDGET, contextKey);
 
-        const currentMessage = { role: 'user', content: prompt };
+        const turnContextNote = buildTurnContextNote({ channel, client, actor, trigger, contextKey, modelOverride });
+        const currentMessage = { role: 'user', content: turnContextNote ? `${turnContextNote}\n\n${prompt}` : prompt };
         if (images.length > 0) currentMessage.images = images;
 
         const sourceLabel = trigger === 'cron' ? 'Cron' : (actor ? `User ${actor.username}` : 'User');
         log(sourceLabel, prompt + (images.length > 0 ? ` [+${images.length} image(s)]` : ''));
 
+        // Live feedback: a step's text + which tools it calls, sent as the tools run.
+        // Skipped for crons so scheduled output stays just the result.
+        const sendLiveStep = async (stepText, toolCalls) => {
+            if (trigger === 'cron') return;
+            const toolLines = toolCalls.map(describeToolCall).join('\n');
+            try {
+                for (const chunk of chunkReply(stepText ? `${stepText}\n${toolLines}` : toolLines)) await channel.send(chunk);
+                if (typingInterval) channel.sendTyping().catch(() => { });
+            } catch (e) {
+                logError('Reply', `Failed to send step message: ${e.message}`);
+            }
+        };
+        // Providers that run tools themselves (claudecode) report them mid-call; chained so they post in order
+        // and before the final reply.
+        let pendingLiveSteps = Promise.resolve();
+
         const context = [...history, currentMessage];
-        let response = await chatWithRetry(systemInstruction, toolDeclarations, context);
+        const turnOptions = {
+            sessionId: getSessionId(contextKey),
+            resumeSession: historyBudget !== 0,
+            modelOverride,
+            onToolCalls: (toolCalls) => { pendingLiveSteps = pendingLiveSteps.then(() => sendLiveStep('', toolCalls)); },
+        };
+        let response = await chatWithRetry(systemInstruction, toolDeclarations, context, turnOptions);
         applyProviderError(response);
         appendToHistory({ role: 'user', content: prompt }, contextKey);
 
@@ -133,18 +158,7 @@ const runTurnNow = async ({
             appendToHistory(response, contextKey);
             context.push(response);
 
-            // Live feedback: this step's text + which tools it calls, sent before the tools run.
-            // Skipped for crons so scheduled output stays just the result.
-            if (trigger !== 'cron') {
-                const toolLines = response.tool_calls.map(describeToolCall).join('\n');
-                const stepText = response.content?.trim();
-                try {
-                    for (const chunk of chunkReply(stepText ? `${stepText}\n${toolLines}` : toolLines)) await channel.send(chunk);
-                    if (typingInterval) channel.sendTyping().catch(() => { });
-                } catch (e) {
-                    logError('Reply', `Failed to send step message: ${e.message}`);
-                }
-            }
+            await sendLiveStep(response.content?.trim(), response.tool_calls);
 
             for (const toolCall of response.tool_calls) {
                 const toolHandler = availableTools[toolCall.function.name];
@@ -197,13 +211,13 @@ const runTurnNow = async ({
                 context.push({ role: 'user', content: 'You have reached the maximum number of tool attempts. Please provide a final text response summarizing what you have done so far.' });
             }
 
-            response = await chatWithRetry(systemInstruction, iterations === MAX_ITERATIONS ? [] : toolDeclarations, context);
+            response = await chatWithRetry(systemInstruction, iterations === MAX_ITERATIONS ? [] : toolDeclarations, context, turnOptions);
             applyProviderError(response);
         }
 
         if (!response.content?.trim() && iterations > 0 && !response.error) {
             log('Reply', 'Response empty after tool use. Retrying without tools.');
-            response = await chatWithRetry(systemInstruction, [], context);
+            response = await chatWithRetry(systemInstruction, [], context, turnOptions);
             applyProviderError(response);
         }
 
@@ -219,6 +233,7 @@ const runTurnNow = async ({
             appendToHistory({ role: 'assistant', content: answer }, contextKey);
         }
 
+        await pendingLiveSteps;
         if (typingInterval) clearInterval(typingInterval);
 
         const chunks = chunkReply(answer);

@@ -43,7 +43,7 @@ function setupWorkspaceEnvironment() {
         }
     }
 
-    const filesToCopy = ['agent.md', 'memory.md', 'soul.md', 'user.md', 'config.json'];
+    const filesToCopy = ['agent.md', 'agent-claudecode.md', 'memory.md', 'soul.md', 'user.md', 'config.json'];
     for (const file of filesToCopy) {
         const sourcePath = path.join(templateDir, file);
         const targetPath = path.join(workspacePath, file);

@@ -84,6 +84,14 @@ const start = async () => {
         return;
     }
 
+    if (getConfig().AI_PROVIDER === 'claudecode') {
+        const claudeCodeProblem = require('./Clients/claudeCodeProvider').describeClaudeCodeSetupProblem();
+        if (claudeCodeProblem) {
+            console.error(`❌ ${claudeCodeProblem}`);
+            process.exit(1);
+        }
+    }
+
     const logFd = fs.openSync(LOG_FILE, 'a');
     const child = spawn('node', [path.join(APP_DIR, 'app.js')], {
         detached: true,
