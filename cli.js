@@ -85,7 +85,7 @@ const start = async () => {
     }
 
     if (getConfig().AI_PROVIDER === 'claudecode') {
-        const claudeCodeProblem = require('./Clients/claudeCodeProvider').describeClaudeCodeSetupProblem();
+        const claudeCodeProblem = require('./Clients/claudecodeProvider').describeClaudeCodeSetupProblem();
         if (claudeCodeProblem) {
             console.error(`❌ ${claudeCodeProblem}`);
             process.exit(1);
